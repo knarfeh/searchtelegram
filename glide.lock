@@ -1,55 +1,67 @@
-hash: 7e575e8d8974ce229b2a5aa3e908468b483a5dbdd36d905e392980a3b8d4e481
-updated: 2017-06-15T11:24:56.989567422+05:00
+hash: d8c71a8f2034d9f98aa06b119dfbd4dadb912a2268b2795803af931feac3a16c
+updated: 2018-01-24T21:15:37.513861093+08:00
 imports:
 - name: github.com/codegangsta/cli
-  version: 347a9884a87374d000eec7e6445a34487c1f4a2b
+  version: 75104e932ac2ddb944a6ea19d9f9f26316ff1145
 - name: github.com/dgrijalva/jwt-go
-  version: 2268707a8f0843315e2004ee4f1d021dc08baedf
+  version: dbeaa9332f19a944acb5736b4456cfcc02140e29
 - name: github.com/dlclark/regexp2
-  version: 3f97b6a39134e6bd88a72d1388d1632e60d83ef6
+  version: 7632a260cbaf5e7594fc1544a503456ecd0827f1
   subpackages:
   - syntax
 - name: github.com/dop251/goja
-  version: 09718839f5255969d0dcaef99119b867d187ecea
+  version: eab79f83e840f5294250a3988a8037c476c9cdae
   subpackages:
   - ast
   - file
   - parser
   - token
 - name: github.com/dop251/goja_nodejs
-  version: 2fc1e6bbfc494e36dd9a0b3e735a4babc538f51f
+  version: adff31b136e6b7e044712aab7236a775e1bd085e
   subpackages:
   - console
   - eventloop
   - require
   - util
 - name: github.com/elazarl/go-bindata-assetfs
-  version: 9a6736ed45b44bf3835afeebb3034b57ed329f3e
+  version: 30f82fa23fd844bd5bb1e5f216db87fd77b5eb43
 - name: github.com/fatih/structs
-  version: a720dfa8df582c51dee1b36feabb906bde1588bd
+  version: 253b866009f3c281655a29eb8a31bcd759a0dbdb
+- name: github.com/go-playground/locales
+  version: e4cbcb5d0652150d40ad0646651076b6bd2be4f6
+  subpackages:
+  - currency
+- name: github.com/go-playground/universal-translator
+  version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/itsjamie/go-bindata-templates
-  version: 65d795d0c74021e19b2ebadf3c83c01a8290a405
+  version: 78f87e838df0fb89dbcd26e1489f988cd7bc3bb8
 - name: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 - name: github.com/labstack/echo
-  version: a8b6864be328fcb5c2d96d32c75b750f84e0e4be
+  version: b6040409eeceaac178c95fe73498b5f992e6b668
   subpackages:
   - middleware
 - name: github.com/labstack/gommon
-  version: f72d3c883f8ea180da8f085dd320804c41332ad1
+  version: 57409ada9da0f2afad6664c49502f8c50fbd8476
   subpackages:
   - bytes
   - color
   - log
   - random
+- name: github.com/mailru/easyjson
+  version: 32fa128f234d041f196a9f3e0fea5ac9772c08e1
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
 - name: github.com/mattn/go-colorable
-  version: d228849504861217f796da67fae4f6e347643f15
+  version: 6cc8b475d4682021d75d2cbe2bc481bec4ce98e5
 - name: github.com/mattn/go-isatty
-  version: 30a891c33c7cde7b02a981314b4228ec99380cca
+  version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
 - name: github.com/olebedev/config
-  version: afea898d27c7d17376ecc60c7c2e73c76b40060e
+  version: 9a10d05a33a8b9e828f20491e21e8927dec35f72
 - name: github.com/olebedev/gojax
   version: bb153be84336f26925890502929cc363477df7ad
   subpackages:
@@ -58,27 +70,22 @@ imports:
 - name: github.com/olebedev/on
   version: f65b7c9823a4c30797e9ad3c51d559a36ff8d542
 - name: github.com/pkg/errors
-  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
+  version: e881fd58d78e04cf6d0de1217f8707c8cc2249bc
 - name: github.com/valyala/bytebufferpool
   version: e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7
 - name: github.com/valyala/fasttemplate
-  version: d090d65668a286d9a180d43a19dfdc5dcad8fe88
+  version: dcecefd839c4193db0d35b88ec65b4c12d360ab0
 - name: golang.org/x/crypto
-  version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
+  version: a6600008915114d9c087fad9f03d75087b1a74df
   subpackages:
   - acme
   - acme/autocert
-- name: golang.org/x/net
-  version: 41bba8d80bbfab43231ffdf4c210037baae5f6a3
-  subpackages:
-  - context
-  - context/ctxhttp
 - name: golang.org/x/sys
-  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
+  version: 2c42eef0765b9837fbdab12011af7830f55f88f0
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 44f4f658a783b0cee41fe0a23b8fc91d9c120558
+  version: e19ae1496984b1c655b8044a65c0300a3c878dd3
   subpackages:
   - cases
   - collate
@@ -88,6 +95,15 @@ imports:
   - language
   - transform
   - unicode/norm
+- name: gopkg.in/go-playground/assert.v1
+  version: 4f4dfbc7d1c48336cf93399deae81aa9067e88af
+- name: gopkg.in/go-playground/validator.v9
+  version: 48a433ba4bcadc5be9aa16d4bdcb383d3f57a741
+- name: gopkg.in/olivere/elastic.v5
+  version: 1094ee281ca61a783c9ba22bf86e7e0a8aa2d112
+  subpackages:
+  - config
+  - uritemplates
 - name: gopkg.in/yaml.v2
-  version: 4c78c975fe7c825c6d1466c42be594d1d6f3aba6
+  version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports: []

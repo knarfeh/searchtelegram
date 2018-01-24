@@ -185,12 +185,10 @@ func TestIndexOf(t *testing.T) {
 
 func TestUnicodeIndexOf(t *testing.T) {
 	const SCRIPT = `
-
-	"абвгд".indexOf("вг", 1)
-
+	"абвгд".indexOf("вг", 1) === 2 && '中国'.indexOf('国') === 1
 	`
 
-	testScript1(SCRIPT, intToValue(2), t)
+	testScript1(SCRIPT, valueTrue, t)
 }
 
 func TestLastIndexOf(t *testing.T) {
@@ -635,6 +633,20 @@ func TestToValueNil(t *testing.T) {
 	}
 }
 
+func TestToValueFloat(t *testing.T) {
+	vm := New()
+	vm.Set("f64", float64(123))
+	vm.Set("f32", float32(321))
+
+	v, err := vm.RunString("f64 === 123 && f32 === 321")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Export().(bool) != true {
+		t.Fatalf("StrictEquals for golang float failed")
+	}
+}
+
 func TestJSONEscape(t *testing.T) {
 	const SCRIPT = `
 	var a = "\\+1";
@@ -904,6 +916,130 @@ func TestReflectNullValueArgument(t *testing.T) {
 		}
 	})
 	rt.RunString(`fn(null);`)
+}
+
+type testNativeConstructHelper struct {
+	rt   *Runtime
+	base int64
+	// any other state
+}
+
+func (t *testNativeConstructHelper) calc(call FunctionCall) Value {
+	return t.rt.ToValue(t.base + call.Argument(0).ToInteger())
+}
+
+func TestNativeConstruct(t *testing.T) {
+	const SCRIPT = `
+	var f = new F(40);
+	f instanceof F && f.method() === 42 && f.calc(2) === 42;
+	`
+
+	rt := New()
+
+	method := func(call FunctionCall) Value {
+		return rt.ToValue(42)
+	}
+
+	rt.Set("F", func(call ConstructorCall) *Object { // constructor signature (as opposed to 'func(FunctionCall) Value')
+		h := &testNativeConstructHelper{
+			rt:   rt,
+			base: call.Argument(0).ToInteger(),
+		}
+		call.This.Set("method", method)
+		call.This.Set("calc", h.calc)
+		return nil // or any other *Object which will be used instead of call.This
+	})
+
+	prg := MustCompile("test.js", SCRIPT, false)
+
+	res, err := rt.RunProgram(prg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !res.StrictEquals(valueTrue) {
+		t.Fatalf("Unexpected result: %v", res)
+	}
+
+	if fn, ok := AssertFunction(rt.Get("F")); ok {
+		v, err := fn(nil, rt.ToValue(42))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if o, ok := v.(*Object); ok {
+			if o.Get("method") == nil {
+				t.Fatal("No method")
+			}
+		} else {
+			t.Fatal("Not an object")
+		}
+	} else {
+		t.Fatal("Not a function")
+	}
+
+	resp := &testNativeConstructHelper{}
+	value := rt.ToValue(resp)
+	if value.Export() != resp {
+		t.Fatal("no")
+	}
+}
+
+func TestCreateObject(t *testing.T) {
+	const SCRIPT = `
+	inst instanceof C;
+	`
+
+	r := New()
+	c := r.ToValue(func(call ConstructorCall) *Object {
+		return nil
+	})
+
+	proto := c.(*Object).Get("prototype").(*Object)
+
+	inst := r.CreateObject(proto)
+
+	r.Set("C", c)
+	r.Set("inst", inst)
+
+	prg := MustCompile("test.js", SCRIPT, false)
+
+	res, err := r.RunProgram(prg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !res.StrictEquals(valueTrue) {
+		t.Fatalf("Unexpected result: %v", res)
+	}
+}
+
+func TestInterruptInWrappedFunction(t *testing.T) {
+	rt := New()
+	v, err := rt.RunString(`
+		var fn = function() {
+			while (true) {}
+		};
+		fn;
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn, ok := AssertFunction(v)
+	if !ok {
+		t.Fatal("Not a function")
+	}
+	go func() {
+		<-time.After(10 * time.Millisecond)
+		rt.Interrupt(errors.New("hi"))
+	}()
+
+	v, err = fn(nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if _, ok := err.(*InterruptedError); !ok {
+		t.Fatalf("Wrong error type: %T", err)
+	}
 }
 
 /*

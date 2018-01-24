@@ -7,6 +7,7 @@ import (
 
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/itsjamie/go-bindata-templates"
+	"github.com/knarfeh/searchtelegram/server/domain"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/nu7hatch/gouuid"
@@ -18,10 +19,11 @@ import (
 // all variables defined locally inside
 // this struct.
 type App struct {
-	Engine *echo.Echo
-	Conf   *config.Config
-	React  *React
-	API    *API
+	Engine   *echo.Echo
+	Conf     *config.Config
+	React    *React
+	API      *API
+	ESClient *ESClient
 }
 
 // NewApp returns initialized struct
@@ -47,12 +49,16 @@ func NewApp(opts ...AppOptions) *App {
 	// Parse environ variables for defined
 	// in config constants
 	conf.Env()
+	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
+	es, _ := NewESClient(ESHOSTPORT, "", "", 3)
 
 	// Make an engine
 	engine := echo.New()
 
 	// Use precompiled embedded templates
 	engine.Renderer = NewTemplate()
+
+	engine.Validator = domain.NewValidator()
 
 	// Set up echo debug level
 	engine.Debug = conf.UBool("debug")
@@ -78,6 +84,7 @@ func NewApp(opts ...AppOptions) *App {
 			conf.UBool("debug"),
 			engine,
 		),
+		ESClient: es,
 	}
 
 	// Map app and uuid for every requests

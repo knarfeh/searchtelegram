@@ -18,3 +18,13 @@ import:
   - fetch
 - package: github.com/olebedev/on
 - package: github.com/jteeuwen/go-bindata
+- package: gopkg.in/olivere/elastic.v5
+- package: github.com/mailru/easyjson
+- package: gopkg.in/go-playground/validator.v9
+  version: ~9.9.3
+- package: github.com/go-playground/universal-translator
+  version: ~0.16.0
+- package: gopkg.in/go-playground/assert.v1
+  version: ~1.2.1
+- package: github.com/dgrijalva/jwt-go
+  version: ~3.1.0

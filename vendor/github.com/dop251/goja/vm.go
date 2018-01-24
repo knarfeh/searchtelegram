@@ -1089,10 +1089,11 @@ func (s setPropGetter) exec(vm *vm) {
 	obj := vm.r.toObject(vm.stack[vm.sp-2])
 	val := vm.stack[vm.sp-1]
 
-	descr := vm.r.NewObject().self
-	descr.putStr("get", val, false)
-	descr.putStr("configurable", valueTrue, false)
-	descr.putStr("enumerable", valueTrue, false)
+	descr := propertyDescr{
+		Getter:       val,
+		Configurable: FLAG_TRUE,
+		Enumerable:   FLAG_TRUE,
+	}
 
 	obj.self.defineOwnProperty(newStringValue(string(s)), descr, false)
 
@@ -1106,10 +1107,11 @@ func (s setPropSetter) exec(vm *vm) {
 	obj := vm.r.toObject(vm.stack[vm.sp-2])
 	val := vm.stack[vm.sp-1]
 
-	descr := vm.r.NewObject().self
-	descr.putStr("set", val, false)
-	descr.putStr("configurable", valueTrue, false)
-	descr.putStr("enumerable", valueTrue, false)
+	descr := propertyDescr{
+		Setter:       val,
+		Configurable: FLAG_TRUE,
+		Enumerable:   FLAG_TRUE,
+	}
 
 	obj.self.defineOwnProperty(newStringValue(string(s)), descr, false)
 
@@ -1835,6 +1837,14 @@ func (vm *vm) _nativeCall(f *nativeFuncObject, n int) {
 	}
 	vm.sp -= n + 1
 	vm.pc++
+}
+
+func (vm *vm) clearStack() {
+	stackTail := vm.stack[vm.sp:]
+	for i := range stackTail {
+		stackTail[i] = nil
+	}
+	vm.stack = vm.stack[:vm.sp]
 }
 
 type enterFunc uint32

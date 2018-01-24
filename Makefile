@@ -16,6 +16,8 @@ GIT_HASH      = $(shell git rev-parse HEAD)
 LDFLAGS       = -w -X main.commitHash=$(GIT_HASH)
 GLIDE         := $(shell command -v glide 2> /dev/null)
 
+export ESHOSTPORT=http://localhost:9200
+
 build: $(ON) $(GO_BINDATA) clean $(TARGET)
 
 clean:

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/labstack/echo"
@@ -12,14 +13,14 @@ import (
 
 func TestBasicAuth(t *testing.T) {
 	e := echo.New()
-	req, _ := http.NewRequest(echo.GET, "/", nil)
+	req := httptest.NewRequest(echo.GET, "/", nil)
 	res := httptest.NewRecorder()
 	c := e.NewContext(req, res)
-	f := func(u, p string, c echo.Context) bool {
+	f := func(u, p string, c echo.Context) (bool, error) {
 		if u == "joe" && p == "secret" {
-			return true
+			return true, nil
 		}
-		return false
+		return false, nil
 	}
 	h := BasicAuth(f)(func(c echo.Context) error {
 		return c.String(http.StatusOK, "test")
@@ -27,6 +28,11 @@ func TestBasicAuth(t *testing.T) {
 
 	// Valid credentials
 	auth := basic + " " + base64.StdEncoding.EncodeToString([]byte("joe:secret"))
+	req.Header.Set(echo.HeaderAuthorization, auth)
+	assert.NoError(t, h(c))
+
+	// Case-insensitive header scheme
+	auth = strings.ToUpper(basic) + " " + base64.StdEncoding.EncodeToString([]byte("joe:secret"))
 	req.Header.Set(echo.HeaderAuthorization, auth)
 	assert.NoError(t, h(c))
 

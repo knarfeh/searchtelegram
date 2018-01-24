@@ -18,6 +18,9 @@ debug: false
 commit: 0
 port: 5000
 title: Go Starter Kit
+ESHOSTPORT: 
+REDIS_HOST:
+REDIS_PORT:
 api:
   prefix: /api
 duktape:

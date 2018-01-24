@@ -33,6 +33,32 @@ func TestAllocToASCII(t *testing.T) {
 	}
 }
 
+func TestProfiles(t *testing.T) {
+	testCases := []struct {
+		name      string
+		want, got *Profile
+	}{
+		{"Punycode", punycode, New()},
+		{"Registration", registration, New(ValidateForRegistration())},
+		{"Registration", registration, New(
+			ValidateForRegistration(),
+			VerifyDNSLength(true),
+			BidiRule(),
+		)},
+		{"Lookup", lookup, New(MapForLookup(), BidiRule(), Transitional(true))},
+		{"Display", display, New(MapForLookup(), BidiRule())},
+	}
+	for _, tc := range testCases {
+		// Functions are not comparable, but the printed version will include
+		// their pointers.
+		got := fmt.Sprintf("%#v", tc.got)
+		want := fmt.Sprintf("%#v", tc.want)
+		if got != want {
+			t.Errorf("%s: \ngot  %#v,\nwant %#v", tc.name, got, want)
+		}
+	}
+}
+
 // doTest performs a single test f(input) and verifies that the output matches
 // out and that the returned error is expected. The errors string contains
 // all allowed error codes as categorized in
@@ -75,83 +101,6 @@ func doTest(t *testing.T, f func(string) (string, error), name, input, want, err
 	})
 }
 
-// TestLabelErrors tests strings returned in case of error. All results should
-// be identical to the reference implementation and can be verified at
-// http://unicode.org/cldr/utility/idna.jsp. The reference implementation,
-// however, seems to not display Bidi and ContextJ errors.
-//
-// In some cases the behavior of browsers is added as a comment. In all cases,
-// whenever a resolve search returns an error here, Chrome will treat the input
-// string as a search string (including those for Bidi and Context J errors),
-// unless noted otherwise.
-func TestLabelErrors(t *testing.T) {
-	encode := func(s string) string { s, _ = encode(acePrefix, s); return s }
-	type kind struct {
-		name string
-		f    func(string) (string, error)
-	}
-	resolve := kind{"ToASCII", Resolve.ToASCII}
-	display := kind{"ToUnicode", Display.ToUnicode}
-	testCases := []struct {
-		kind
-		input   string
-		want    string
-		wantErr string
-	}{
-		// Don't map U+2490 (DIGIT NINE FULL STOP). This is the behavior of
-		// Chrome, Safari, and IE. Firefox will first map ⒐ to 9. and return
-		// lab9.be.
-		{resolve, "lab⒐be", "xn--labbe-zh9b", "P1"}, // encode("lab⒐be")
-		{display, "lab⒐be", "lab⒐be", "P1"},
-
-		{resolve, "plan⒐faß.de", "xn--planfass-c31e.de", "P1"}, // encode("plan⒐fass") + ".de"
-		{display, "plan⒐faß.de", "plan⒐faß.de", "P1"},
-
-		// Chrome 54.0 recognizes the error and treats this input verbatim as a
-		// search string.
-		// Safari 10.0 (non-conform spec) decomposes "⒈" and computes the
-		// punycode on the result using transitional mapping.
-		// Firefox 49.0.1 goes haywire on this string and prints a bunch of what
-		// seems to be nested punycode encodings.
-		{resolve, "日本⒈co.ßßß.de", "xn--co-wuw5954azlb.ssssss.de", "P1"},
-		{display, "日本⒈co.ßßß.de", "日本⒈co.ßßß.de", "P1"},
-
-		{resolve, "a\u200Cb", "ab", ""},
-		{display, "a\u200Cb", "a\u200Cb", "C"},
-
-		{resolve, encode("a\u200Cb"), encode("a\u200Cb"), "C"},
-		{display, "a\u200Cb", "a\u200Cb", "C"},
-
-		{resolve, "grﻋﺮﺑﻲ.de", "xn--gr-gtd9a1b0g.de", "B"},
-		{
-			// Notice how the string gets transformed, even with an error.
-			// Chrome will use the original string if it finds an error, so not
-			// the transformed one.
-			display,
-			"gr\ufecb\ufeae\ufe91\ufef2.de",
-			"gr\u0639\u0631\u0628\u064a.de",
-			"B",
-		},
-
-		{resolve, "\u0671.\u03c3\u07dc", "xn--qib.xn--4xa21s", "B"}, // ٱ.σߜ
-		{display, "\u0671.\u03c3\u07dc", "\u0671.\u03c3\u07dc", "B"},
-
-		// normalize input
-		{resolve, "a\u0323\u0322", "xn--jta191l", ""}, // ạ̢
-		{display, "a\u0323\u0322", "\u1ea1\u0322", ""},
-
-		// Non-normalized strings are not normalized when they originate from
-		// punycode. Despite the error, Chrome, Safari and Firefox will attempt
-		// to look up the input punycode.
-		{resolve, encode("a\u0323\u0322") + ".com", "xn--a-tdbc.com", "V1"},
-		{display, encode("a\u0323\u0322") + ".com", "a\u0323\u0322.com", "V1"},
-	}
-
-	for _, tc := range testCases {
-		doTest(t, tc.f, tc.name, tc.input, tc.want, tc.wantErr)
-	}
-}
-
 func TestConformance(t *testing.T) {
 	testtext.SkipIfNotLong(t)
 
@@ -165,8 +114,8 @@ func TestConformance(t *testing.T) {
 			section = strings.ToLower(strings.Split(s, " ")[0])
 		}
 	}))
-	transitional := New(Transitional(true), VerifyDNSLength(true))
-	nonTransitional := New(VerifyDNSLength(true))
+	transitional := New(Transitional(true), VerifyDNSLength(true), BidiRule(), MapForLookup())
+	nonTransitional := New(VerifyDNSLength(true), BidiRule(), MapForLookup())
 	for p.Next() {
 		started = true
 
@@ -220,4 +169,10 @@ func unescape(s string) string {
 		panic(err)
 	}
 	return s
+}
+
+func BenchmarkProfile(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Lookup.ToASCII("www.yahoogle.com")
+	}
 }
