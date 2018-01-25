@@ -1,40 +1,64 @@
-var path = require('path');
-var webpack = require('webpack');
-var autoprefixer = require('autoprefixer');
-var precss = require('precss');
-var functions = require('postcss-functions');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
+const path = require('path');
+const webpack = require('webpack');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MergeFilesPlugin = require('merge-files-webpack-plugin');
 
-var postCssLoader = [
-  'css-loader?modules',
-  '&localIdentName=[name]__[local]___[hash:base64:5]',
-  '&disableStructuralMinification',
-  '!postcss-loader'
-];
+const isProduction = process.env.NODE_ENV === 'production';
+
+// postcss config
+const postCSSConfig = function(loader) {
+  return [
+    require('autoprefixer')(),
+    require('precss')({
+      variables: {
+        variables: require('./client/css/vars')
+      }
+    }),
+    require('postcss-functions')({
+      functions: require('./client/css/funcs')
+    })
+  ];
+};
+
+// plugins
 
 var plugins = [
-  new webpack.NoErrorsPlugin(),
-  new webpack.optimize.DedupePlugin(),
-  new ExtractTextPlugin('bundle.css'),
+  new webpack.NoEmitOnErrorsPlugin()
 ];
 
-if (process.env.NODE_ENV === 'production') {
+if (isProduction) {
   plugins = plugins.concat([
     new webpack.optimize.UglifyJsPlugin({
-      output: {comments: false},
+      output: {
+        comments: false
+      },
       test: /bundle\.js?$/
     }),
     new webpack.DefinePlugin({
-      'process.env': {NODE_ENV: JSON.stringify('production')}
+      'process.env': {
+        NODE_ENV: JSON.stringify('production')
+      }
     })
   ]);
 
   postCssLoader.splice(1, 1); // drop human readable names
 };
 
-var config  = {
+const extractCSS = new ExtractTextPlugin('bundle1.css');
+const extractSCSS = new ExtractTextPlugin('bundle2.css');
+const mergeBundles = new MergeFilesPlugin({
+  filename: 'bundle.css',
+  test: /bundle[0-9]\.css$/,
+  deleteSourceFiles: true
+});
+
+plugins = plugins.concat([extractCSS, extractSCSS, mergeBundles]);
+
+// webpack config/rules
+
+const config = {
   entry: {
-    bundle: path.join(__dirname, 'client/index.js')
+    bundle: ['babel-polyfill', path.join(__dirname, 'client/index.js')]
   },
   output: {
     path: path.join(__dirname, 'server/data/static/build'),
@@ -43,57 +67,118 @@ var config  = {
   },
   plugins: plugins,
   module: {
-    loaders: [
-      {test: /\.css/, loader: ExtractTextPlugin.extract('style-loader', postCssLoader.join(''))},
-      {test: /\.(png|gif)$/, loader: 'url-loader?name=[name]@[hash].[ext]&limit=5000'},
-      {test: /\.svg$/, loader: 'url-loader?name=[name]@[hash].[ext]&limit=5000!svgo-loader?useConfig=svgo1'},
-      {test: /\.(pdf|ico|jpg|eot|otf|woff|ttf|mp4|webm)$/, loader: 'file-loader?name=[name]@[hash].[ext]'},
-      {test: /\.json$/, loader: 'json-loader'},
-      {
-        test: /\.jsx?$/,
-        include: path.join(__dirname, 'client'),
-        loaders: ['babel']
-      }
-    ]
+    rules: [{
+      test: /\.css$/,
+      use: extractCSS.extract({
+        fallback: 'style-loader',
+        use: [{
+          loader: 'css-loader',
+          options: {
+            modules: true,
+            localIdentName: '[name]__[local]___[hash:base64:5]',
+            disableStructuralMinification: true,
+            importLoaders: true
+          }
+        }, {
+          loader: 'postcss-loader',
+          options: {
+            plugins: postCSSConfig
+          }
+        }]
+      })
+    }, {
+      test: /\.scss$/,
+      use: extractSCSS.extract({
+        fallback: 'style-loader',
+        use: [{
+          loader: 'css-loader',
+          options: {
+            modules: true,
+            localIdentName: '[local]',
+            disableStructuralMinification: true,
+            importLoaders: true
+          }
+        }, {
+          loader: 'postcss-loader',
+          options: {
+            plugins: postCSSConfig
+          }
+        }, {
+          loader: 'sass-loader'
+        }]
+      })
+    }, {
+      test: /\.(png|gif)$/,
+      use: [{
+        loader: 'url-loader',
+        options: {
+          name: '[name]@[hash].[ext]',
+          limit: 5000
+        }
+      }]
+    }, {
+      test: /\.svg$/,
+      use: [{
+        loader: 'url-loader',
+        options: {
+          name: '[name]@[hash].[ext]',
+          limit: 5000
+        }
+      }, {
+        loader: 'svgo-loader',
+        options: {
+          multipass: true,
+          plugins: [
+            // by default enabled
+            {
+              mergePaths: false
+            }, {
+              convertTransform: false
+            }, {
+              convertShapeToPath: false
+            }, {
+              cleanupIDs: false
+            }, {
+              collapseGroups: false
+            }, {
+              transformsWithOnePath: false
+            }, {
+              cleanupNumericValues: false
+            }, {
+              convertPathData: false
+            }, {
+              moveGroupAttrsToElems: false
+            },
+            // by default disabled
+            {
+              removeTitle: true
+            }, {
+              removeDesc: true
+            }
+          ]
+        }
+      }]
+    }, {
+      test: /\.(pdf|ico|jpg|eot|otf|woff|ttf|mp4|webm)$/,
+      use: [{
+        loader: 'file-loader',
+        options: {
+          name: '[name]@[hash].[ext]'
+        }
+      }]
+    }, {
+      test: /\.jsx?$/,
+      include: path.join(__dirname, 'client'),
+      loader: 'babel-loader'
+    }]
   },
   resolve: {
-    extensions: ['', '.js', '.jsx', '.css'],
+    extensions: ['.js', '.jsx', '.css', '.scss'],
     alias: {
       '#app': path.join(__dirname, 'client'),
       '#c': path.join(__dirname, 'client/components'),
       '#css': path.join(__dirname, 'client/css')
     }
-  },
-  svgo1: {
-    multipass: true,
-    plugins: [
-      // by default enabled
-      {mergePaths: false},
-      {convertTransform: false},
-      {convertShapeToPath: false},
-      {cleanupIDs: false},
-      {collapseGroups: false},
-      {transformsWithOnePath: false},
-      {cleanupNumericValues: false},
-      {convertPathData: false},
-      {moveGroupAttrsToElems: false},
-      // by default disabled
-      {removeTitle: true},
-      {removeDesc: true}
-    ]
-  },
-  postcss: function() {
-    return [
-      autoprefixer,
-      precss({
-        variables: {
-          variables: require('./client/css/vars')
-        }
-      }),
-      functions({
-        functions: require('./client/css/funcs')
-      })
-    ];
   }
 };
 

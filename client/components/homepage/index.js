@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import Helmet from 'react-helmet';
 import { Link } from 'react-router';
-import { example, p, link } from './styles';
+import {
+  Layout, TopBar, LayoutBody,
+  LayoutResults, ActionBar, ActionBarRow, SideBar} from '../ui/layout';
 
 export default class Homepage extends Component {
   /*eslint-disable */
@@ -12,24 +14,29 @@ export default class Homepage extends Component {
   /*eslint-enable */
 
   render() {
-    return <div>
-      <Helmet
-        title='Home page'
-        meta={[
-          {
-            property: 'og:title',
-            content: 'Golang Isomorphic React/Hot Reloadable/Redux/Css-Modules Starter Kit'
-          }
-        ]} />
-      <h1 className={example}>
-        Hot Reloadable <br />
-        Golang + React + Redux + Css-Modules
-        <br />Isomorphic Starter Kit</h1>
-      <br />
-      <p className={p}>
-        Please take a look at <Link className={link} to='/docs'>usage</Link> page.
-      </p>
-    </div>;
+    return (
+      <div>
+        <Helmet
+          title='Search Telegram'
+          meta={[
+            {
+              property: 'og:title',
+              content: 'Search Engine for Telegram'
+            }
+          ]} />
+        <Layout>
+          <TopBar>
+            <div className="st-logo">Telegram Search</div>
+            {/* <SearchBox autofocus={true} searchOnChange={true} prefixQueryFields={["actors^1","type^2","languages","title^10"]}/> */}
+          </TopBar>
+          <LayoutBody>
+            <SideBar>
+              <p>side bar</p>
+            </SideBar>
+          </LayoutBody>
+        </Layout>
+      </div>
+    );
   }
 
 }

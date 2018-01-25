@@ -6,34 +6,35 @@ var config = require('./webpack.config');
 
 var port = +(process.env.PORT || 5000);
 
+hotBundle = ['webpack-hot-middleware/client?http://localhost:' + port].concat(config.entry.bundle);
+
 config.entry = {
-  bundle: [
-    'webpack-hot-middleware/client?http://localhost:' + port,
-    config.entry.bundle
-  ]
+    bundle: hotBundle
 };
 
 config.plugins.push(
-  new webpack.optimize.OccurenceOrderPlugin(),
-  new webpack.HotModuleReplacementPlugin(),
-  new webpack.NoErrorsPlugin()
+    new webpack.HotModuleReplacementPlugin(),
+    new webpack.NoEmitOnErrorsPlugin()
 );
 
-config.devtool = 'cheap-module-eval-source-map';
+config.devtool = 'eval-source-map';
 
 var app = new require('express')();
 
 var compiler = webpack(config);
-app.use(webpackDevMiddleware(compiler, { noInfo: true, publicPath: config.output.publicPath }));
+app.use(webpackDevMiddleware(compiler, {
+    noInfo: true,
+    publicPath: config.output.publicPath
+}));
 app.use(webpackHotMiddleware(compiler));
 app.use(proxy('http://localhost:' + port));
 
 port++;
 
 app.listen(port, function(error) {
-  if (error) {
-    console.error(error);
-  } else {
-    console.info('==> 🌎  Listening on port %s. Open up http://localhost:%s/ in your browser.', port, port);
-  }
+    if (error) {
+        console.error(error);
+    } else {
+        console.info('==> 🌎  Listening on port %s. Open up http://localhost:%s/ in your browser.', port, port);
+    }
 });
