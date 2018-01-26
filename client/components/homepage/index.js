@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import {
   Layout, TopBar, LayoutBody,
   LayoutResults, ActionBar, ActionBarRow, SideBar} from '../ui/layout';
+import './styles.css';
 
 export default class Homepage extends Component {
   /*eslint-disable */
@@ -12,6 +13,11 @@ export default class Homepage extends Component {
     callback(); // this call is important, don't forget it
   }
   /*eslint-enable */
+  constructor(props) {
+    super(props);
+    console.log(window.location);
+    console.log('constructor');
+  }
 
   render() {
     return (
@@ -26,13 +32,25 @@ export default class Homepage extends Component {
           ]} />
         <Layout>
           <TopBar>
-            <div className="st-logo">Telegram Search</div>
-            {/* <SearchBox autofocus={true} searchOnChange={true} prefixQueryFields={["actors^1","type^2","languages","title^10"]}/> */}
+            <div className="my-logo">Telegram Search</div>
+            <div className="sk-search-box">
+              <form>
+                <div className="sk-search-box__icon"></div>
+                <input type="text"
+                data-qa="query"
+                className="TODO"
+                placeholder="search"
+                ref="queryField"/>
+              </form>
+            </div>
           </TopBar>
           <LayoutBody>
             <SideBar>
               <p>side bar</p>
             </SideBar>
+            <LayoutResults>
+              <p>Result</p>
+            </LayoutResults>
           </LayoutBody>
         </Layout>
       </div>

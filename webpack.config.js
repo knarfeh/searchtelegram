@@ -75,7 +75,7 @@ const config = {
           loader: 'css-loader',
           options: {
             modules: true,
-            localIdentName: '[name]__[local]___[hash:base64:5]',
+            localIdentName: '[local]',
             disableStructuralMinification: true,
             importLoaders: true
           }
@@ -86,7 +86,8 @@ const config = {
           }
         }]
       })
-    }, {
+    },
+    {
       test: /\.scss$/,
       use: extractSCSS.extract({
         fallback: 'style-loader',
@@ -107,7 +108,8 @@ const config = {
           loader: 'sass-loader'
         }]
       })
-    }, {
+    },
+    {
       test: /\.(png|gif)$/,
       use: [{
         loader: 'url-loader',
@@ -116,7 +118,8 @@ const config = {
           limit: 5000
         }
       }]
-    }, {
+    },
+    {
       test: /\.svg$/,
       use: [{
         loader: 'url-loader',
@@ -158,7 +161,8 @@ const config = {
           ]
         }
       }]
-    }, {
+    },
+    {
       test: /\.(pdf|ico|jpg|eot|otf|woff|ttf|mp4|webm)$/,
       use: [{
         loader: 'file-loader',
