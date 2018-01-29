@@ -127,7 +127,8 @@ const config = {
           name: '[name]@[hash].[ext]',
           limit: 5000
         }
-      }, {
+      },
+      {
         loader: 'svgo-loader',
         options: {
           multipass: true,
@@ -170,14 +171,20 @@ const config = {
           name: '[name]@[hash].[ext]'
         }
       }]
-    }, {
+    },
+    {
+      test: /\.tsx?$/,
+      exclude: /(node_modules|__tests__)/,
+      use: ['ts-loader']
+    },
+    {
       test: /\.jsx?$/,
       include: path.join(__dirname, 'client'),
       loader: 'babel-loader'
     }]
   },
   resolve: {
-    extensions: ['.js', '.jsx', '.css', '.scss'],
+    extensions: ['.js', '.jsx', '.css', '.scss', '.ts', '.tsx'],
     alias: {
       '#app': path.join(__dirname, 'client'),
       '#c': path.join(__dirname, 'client/components'),

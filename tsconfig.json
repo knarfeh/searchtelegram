@@ -11,9 +11,11 @@
     "noEmitOnError": true,
     "jsx": "react"
   },
-  "files": [
-    "./client/components/homepage/index.tsx"
+  "include": [
+    "client/**/*"
   ],
+  "types": [ "node" ],
+  "typeRoots": [ "../node_modules/@types" ],
   "filesGlob": [
   ],
   "exclude": []

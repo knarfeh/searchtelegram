@@ -1,12 +1,12 @@
-import React, { Component } from 'react';
+import * as React from 'react';
 import Helmet from 'react-helmet';
 import { Link } from 'react-router';
 import {
   Layout, TopBar, LayoutBody,
   LayoutResults, ActionBar, ActionBarRow, SideBar} from '../ui/layout';
-import './styles.css';
+// import './styles.css';
 
-export default class Homepage extends Component {
+export default class Homepage extends React.Component {
   /*eslint-disable */
   static onEnter({store, nextState, replaceState, callback}) {
     // Load here any data.
