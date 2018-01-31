@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import {
   Layout, TopBar, LayoutBody,
   LayoutResults, ActionBar, ActionBarRow, SideBar} from '../ui/layout';
+import { SearchBox } from '../search';
 // import './styles.css';
 
 export default class Homepage extends React.Component {
@@ -32,17 +33,9 @@ export default class Homepage extends React.Component {
           ]} />
         <Layout>
           <TopBar>
-            <div className="my-logo">Telegram Search</div>
-            <div className="sk-search-box">
-              <form>
-                <div className="sk-search-box__icon"></div>
-                <input type="text"
-                data-qa="query"
-                className="TODO"
-                placeholder="search"
-                ref="queryField"/>
-              </form>
-            </div>
+            <div className="my-logo">Search Telegram</div>
+            <SearchBox>
+            </SearchBox>
           </TopBar>
           <LayoutBody>
             <SideBar>
