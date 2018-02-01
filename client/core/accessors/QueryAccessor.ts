@@ -17,11 +17,19 @@ export class QueryAccessor extends BaseQueryAccessor {
   options: SearchOptions
 
   constructor(key, options={}) {
-    console.log('queryaccessor construct')
     super(key)
     this.options = options
     // this.options.queryFields = this.options.queryFields || ["_all"]
   }
 
+  fromQueryObject(ob) {
+    super.fromQueryObject(ob)
+  }
+
+  // buildSharedQuery(query) {
+  //   let queryStr = this.state.getValue()
+  //   console.log('build shared query')
+  //   return 'q=test'
+  // }
 
 }

@@ -27,6 +27,7 @@ export interface SearchBoxProps extends SearchkitComponentProps {
 export class SearchBox extends SearchkitComponent<SearchBoxProps, any> {
   accessor: QueryAccessor
   lastSearchMs: number
+  throttledSearch: () => void
 
   static defaultProps = {
     id: 'q',
@@ -50,7 +51,9 @@ export class SearchBox extends SearchkitComponent<SearchBoxProps, any> {
       input: undefined
     }
     this.lastSearchMs = 0
-
+    this.throttledSearch = throttle(()=> {
+      this.searchQuery(this.accessor.getQueryString())
+    }, props.searchThrottleTime)
   }
 
   defineBEMBlocks() {
@@ -90,7 +93,7 @@ export class SearchBox extends SearchkitComponent<SearchBoxProps, any> {
   getValue() {
     const { input } = this.state
     if (isUndefined(input)) {
-      // return this.getAc
+      return this.getAccessorValue()
     } else {
       return input
     }
@@ -101,10 +104,15 @@ export class SearchBox extends SearchkitComponent<SearchBoxProps, any> {
   }
 
   onChange(e) {
+    console.log('onchange!!!!')
     const query = e.target.value;
     if (this.props.searchOnChange) {
-
+      console.log('search on change?????')
+      this.accessor.setQueryString(query)
+      this.throttledSearch()
+      this.forceUpdate()
     } else {
+      console.log('not search on change?????')
       this.setState( { input: query })
     }
   }

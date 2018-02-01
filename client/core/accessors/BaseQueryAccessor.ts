@@ -2,6 +2,7 @@ import { StatefulAccessor } from './StatefulAccessor';
 import { ValueState } from './../state/ValueState';
 
 export class BaseQueryAccessor extends StatefulAccessor<ValueState> {
+
   constructor(key) {
     super(key)
     this.state = new ValueState()
@@ -12,11 +13,12 @@ export class BaseQueryAccessor extends StatefulAccessor<ValueState> {
   }
 
   setQueryString(queryString, withReset=false) {
-    console.log('setQueryString!!!!')
+    console.log('setQueryString!!!!, queryString???', queryString)
     if (withReset) {
       this.searchkit.resetState()
     }
     this.state = this.state.setValue(queryString)
+    // this.urlWithState(this.state) // TODELETE
   }
 
   getQueryString() {

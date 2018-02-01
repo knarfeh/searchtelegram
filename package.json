@@ -31,6 +31,7 @@
     "express": "^4.15.2",
     "extract-text-webpack-plugin": "^2.1.0",
     "file-loader": "^0.11.1",
+    "history": "^2.1.2",
     "lodash": "^4.17.4",
     "merge-files-webpack-plugin": "^1.1.2",
     "node-sass": "^4.5.3",
@@ -115,5 +116,9 @@
   },
   "main": "index.js",
   "repository": "git@github.com:olebedev/go-starter-kit.git",
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/bluebird": "^3.5.20",
+    "@types/core-js": "^0.9.36",
+    "@types/history": "^2.0.49"
+  }
 }

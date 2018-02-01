@@ -41,8 +41,10 @@ export class AccessorManager {
   }
 
   add(accessor) {
+    console.log('accessor manager, add accessor')
     if(accessor instanceof StatefulAccessor) {
       if(accessor instanceof BaseQueryAccessor && accessor.key == 'q') {
+        console.log('is q!!!!')
         if(false) {
 
         } else {
@@ -77,12 +79,14 @@ export class AccessorManager {
   }
 
   getState() {
+    console.log('accessormanager get state')
     return reduce(this.getStatefuleAccessors(), (state, accessor)=> {
       return assign(state, accessor.getQueryObject())
     }, {})
   }
 
   setState(state) {
+    console.log('set state')
     each(
       this.getStatefuleAccessors(),
       accessor=> accessor.fromQueryObject(state)
