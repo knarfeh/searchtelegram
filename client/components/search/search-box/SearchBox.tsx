@@ -117,16 +117,41 @@ export class SearchBox extends SearchkitComponent<SearchBoxProps, any> {
     }
   }
 
+  setFocusState(focused: boolean) {
+    if (!focused) {
+      const { input } = this.state
+      if (this.props.blurAction == 'search'
+        && !isUndefined(input)
+        && input != this.getAccessorValue()
+      ) {
+        this.searchQuery(input)
+      }
+      this.setState({
+        focused,
+        input: undefined
+      })
+    } else {
+      this.setState({ focused })
+    }
+  }
+
   render() {
+    let block = this.bemBlocks.container
+
     return (
-      <div className="sk-search-box">
+      <div className={block.state({focused: this.state.focused})}>
         <form onSubmit={this.onSubmit.bind(this)}>
           <div className="sk-search-box__icon"></div>
           <input
+            autoFocus={this.props.autofocus}
+            className={block("text")}
+            data-qa="query"
+            onBlur={this.setFocusState.bind(this, false)}
+            onFocus={this.setFocusState.bind(this, true)}
+            onInput={this.onChange.bind(this)}
+            ref="queryField"
             type="text"
             value={this.getValue()}
-            onInput={this.onChange.bind(this)}
-            className="sk-search-box__text"
           />
           <input type="submit" value="search" className="sk-search-box__action" data-qa="submit"/>
         </form>

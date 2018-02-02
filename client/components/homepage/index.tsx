@@ -26,33 +26,23 @@ export default class Homepage extends React.Component {
 
   render() {
     return (
-      <div>
-        <Helmet
-          title='Search Telegram'
-          meta={[
-            {
-              property: 'og:title',
-              content: 'Search Engine for Telegram'
-            }
-          ]} />
-        <SearchkitProvider searchkit={searchkit}>
-          <Layout>
-            <TopBar>
-              <div className="my-logo">Search Telegram</div>
-              <SearchBox searchOnChange={true} autofocus={true}>
-              </SearchBox>
-            </TopBar>
-            <LayoutBody>
-              <SideBar>
-                <p>side bar</p>
-              </SideBar>
-              <LayoutResults>
-                <p>Result</p>
-              </LayoutResults>
-            </LayoutBody>
-          </Layout>
-        </SearchkitProvider>
-      </div>
+      <SearchkitProvider searchkit={searchkit}>
+        <Layout>
+          <TopBar>
+            <div className="my-logo">Search Telegram</div>
+            <SearchBox searchOnChange={true} autofocus={true}>
+            </SearchBox>
+          </TopBar>
+          <LayoutBody>
+            <SideBar>
+              <p>side bar</p>
+            </SideBar>
+            <LayoutResults>
+              <p>Result</p>
+            </LayoutResults>
+          </LayoutBody>
+        </Layout>
+      </SearchkitProvider>
     );
   }
 
