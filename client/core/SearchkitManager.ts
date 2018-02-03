@@ -3,6 +3,7 @@ import { SearchAxiosApiTransport, SearchApiTransportOptions } from './transport'
 import { EventEmitter } from "./support";
 import { AccessorManager } from './AccessorManager';
 import { createHistory } from './history';
+import { SearchRequest } from './SearchRequest';
 // import * as Promise from 'bluebird';
 
 const defaults = require("lodash/defaults")
@@ -18,7 +19,7 @@ require('es6-promise').polyfill()
 
 export interface SearchkitOptions {
   useHistory?: boolean,
-  searchOnLoad?: boolean,
+  searchOnload?: boolean,
   httpHeaders?: Object,
   basicAuth?: string,
   transport?: SearchAxiosApiTransport,
@@ -27,18 +28,21 @@ export interface SearchkitOptions {
 
 export class SearchkitManager {
   private registrationCompleted: any
+  _unlistenHistory: Function
   accessors: AccessorManager
   completeRegistration: Function
-  host: string
-  state: any
-  currentSearchRequest: Function
-  history
-  _unlistenHistory: Function
-  query
-  options: SearchkitOptions
-  transport: SearchAxiosApiTransport
+  currentSearchRequest: SearchRequest
+  error: any
   emitter: EventEmitter
+  history
+  host: string
   initialLoading: boolean
+  loading: boolean
+  options: SearchkitOptions
+  query
+  results: any
+  state: any
+  transport: SearchAxiosApiTransport
 
   constructor(
     host: string,
@@ -46,9 +50,10 @@ export class SearchkitManager {
   ) {
     this.options = defaults(options, {
       useHistory: true,
+      searchOnload: true,
       httpHeaders: {},
-      searchOnload: true
     })
+    console.log('constructor, options?????', this.options)
     this.host = host
     this.transport = this.options.transport || new SearchAxiosApiTransport(host, {
       headers: this.options.httpHeaders,
@@ -92,7 +97,9 @@ export class SearchkitManager {
   }
 
   listenToHistory() {
-    let callsBeforeListen = (this.options.searchOnLoad) ? 1: 2
+    console.log('this.options?????', this.options.searchOnload)
+    let callsBeforeListen = (this.options.searchOnload) ? 1: 2
+    console.log('callsbeforelisten????', callsBeforeListen)
     this._unlistenHistory = this.history.listen(after(callsBeforeListen, (location)=>{
       console.log('listenTohistory')
       // action is POP when the browser modified
@@ -107,7 +114,7 @@ export class SearchkitManager {
   }
 
   runInitialSearch() {
-    if(this.options.searchOnLoad) {
+    if(this.options.searchOnload) {
       this.registrationCompleted.then(()=> {
         this._search()
       })
@@ -150,8 +157,42 @@ export class SearchkitManager {
 
   _search() {
     this.state = this.accessors.getState()
+    const params = this.state || this.accessors.getState()
+    const queryString = qs.stringify(params, { encode: true})
     // this.query = this.buildQuery()
     this.emitter.trigger()
+    this.currentSearchRequest && this.currentSearchRequest.deactivate()
+    this.currentSearchRequest = new SearchRequest(
+      this.transport, queryString, this
+    )
+    this.currentSearchRequest.run()
+  }
+
+  setResults(results) {
+    console.log('got results', results)
+    this.results = results
+    this.error = null
+    this.accessors.setResults(results)
+    // this.onResponseChange()
+    // TODO
+  }
+
+  setError(error) {
+    this.error = error
+    console.error(this.error)
+    this.results = null
+    this.accessors.setResults(null)
+    this.onResponseChange()
+  }
+
+  onResponseChange() {
+    this.loading = false
+    this.initialLoading = false
+    this.emitter.trigger()
+  }
+
+  compareResults(priviousResults, results) {
+    console.log('TODO: compare results')
   }
 }
 

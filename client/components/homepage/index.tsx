@@ -8,7 +8,7 @@ import { SearchBox } from '../search';
 import { SearchkitManager, SearchkitProvider } from '../../core';
 // import './styles.css';
 
-const host = "http://todo.todo"
+const host = "/api/v1"
 const searchkit = new SearchkitManager(host, {useHistory: true})
 
 export default class Homepage extends React.Component {

@@ -100,6 +100,9 @@ export class AccessorManager {
     )
   }
 
+  setResults(results) {
+    each(this.accessors, a => a.setResults(results))
+  }
 
   resetState() {
     each(this.getStatefuleAccessors(), a => a.resetState())

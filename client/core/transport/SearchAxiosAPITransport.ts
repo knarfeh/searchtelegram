@@ -29,8 +29,8 @@ export class SearchAxiosApiTransport extends SearchAPITransport {
   }
 
 
-  search(query: Object) {
-    return this.axios.get(this.options.searchUrlPath, query)
+  search(queryString: String) {
+    return this.axios.get(this.options.searchUrlPath+'?'+queryString+'&page=1&page_size=100')
       .then(this.getData)
   }
 
