@@ -4,8 +4,11 @@ import { Link } from 'react-router';
 import {
   Layout, TopBar, LayoutBody,
   LayoutResults, ActionBar, ActionBarRow, SideBar} from '../ui/layout';
-import { SearchBox } from '../search';
-import { SearchkitManager, SearchkitProvider } from '../../core';
+import {
+  SearchBox,
+  RefinementListFilter
+} from '../search';
+import { SearchkitManager, SearchkitProvider} from '../../core';
 // import './styles.css';
 
 const host = "/api/v1"
@@ -35,7 +38,7 @@ export default class Homepage extends React.Component {
           </TopBar>
           <LayoutBody>
             <SideBar>
-              <p>side bar</p>
+              <RefinementListFilter id="tags" title="Tags" field="fieldTODO" size={10}/>
             </SideBar>
             <LayoutResults>
               <p>Result</p>

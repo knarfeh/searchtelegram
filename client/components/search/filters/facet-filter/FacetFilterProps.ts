@@ -4,12 +4,11 @@ import {
   SearchkitComponentProps,
   SearchkitComponent,
   RenderComponentPropType, RenderComponentType,
-  FieldOptions
 } from "../../../../core"
 
 import {
   ItemProps, ListProps
-} from "../../../"
+} from "../../../ui"
 
 const defaults = require("lodash/defaults")
 export interface FacetFilterProps extends SearchkitComponentProps {
@@ -27,7 +26,6 @@ export interface FacetFilterProps extends SearchkitComponentProps {
   exclude?: Array<string> | string
   showCount?: boolean
   showMore?:boolean
-  fieldOptions?:FieldOptions,
   countFormatter?:(count:number)=> number | string
   bucketsTransform?:Function
 }

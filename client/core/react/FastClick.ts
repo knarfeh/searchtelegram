@@ -1,12 +1,20 @@
 import * as React from "react";
-import {PureRender} from "./pure-render"
-
+import {renderComponent} from "./RenderComponent"
 export interface Point {
   x:number, y :number
 }
 
-@PureRender
-export class FastClick extends React.Component<any, any>{
+export class NormalClickComponent extends React.PureComponent<any, any>{
+  // https://stackoverflow.com/questions/42261783/how-to-assign-the-correct-typing-to-react-cloneelement-when-giving-properties-to
+  render(){
+    return React.cloneElement(this.props.children as React.ReactElement<any>, {
+      onClick:this.props.handler
+    })
+  }
+}
+
+
+export class FastClickComponent extends React.PureComponent<any, any>{
 
   startPoint:Point
   threshold = 20
@@ -61,13 +69,25 @@ export class FastClick extends React.Component<any, any>{
     event.preventDefault()
   }
 
-//   render(){
-//     return React.cloneElement(this.props.children, {
-//       onMouseDown:this.handleMouseDown.bind(this),
-//       onTouchStart:this.handleTouchStart.bind(this),
-//       onTouchEnd:this.handleTouchEnd.bind(this),
-//       onClick:this.handleClick.bind(this)
-//     })
-//   }
+  render(){
+    return React.cloneElement(this.props.children as React.ReactElement<any>, {
+      onMouseDown:this.handleMouseDown.bind(this),
+      onTouchStart:this.handleTouchStart.bind(this),
+      onTouchEnd:this.handleTouchEnd.bind(this),
+      onClick:this.handleClick.bind(this)
+    })
+  }
 
+}
+
+export class FastClick extends React.Component<any, any>{
+  static component = NormalClickComponent
+
+  render(){
+    return renderComponent(
+      FastClick.component,
+      this.props,
+      this.props.children
+    )
+  }
 }
