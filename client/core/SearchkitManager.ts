@@ -2,7 +2,7 @@ import { QueryAccessor } from './accessors/QueryAccessor';
 import { SearchAxiosApiTransport, SearchApiTransportOptions } from './transport'
 import { EventEmitter } from "./support";
 import { AccessorManager } from './AccessorManager';
-import { createHistory } from './history';
+import { createHistoryInstance, encodeObjUrl, decodeObjString } from './history';
 import { SearchRequest } from './SearchRequest';
 // import * as Promise from 'bluebird';
 
@@ -19,6 +19,8 @@ require('es6-promise').polyfill()
 
 export interface SearchkitOptions {
   useHistory?: boolean,
+  createHistory?: Function,
+  getLocation?: Function,
   searchOnload?: boolean,
   httpHeaders?: Object,
   basicAuth?: string,
@@ -49,6 +51,8 @@ export class SearchkitManager {
     options: SearchkitOptions = {}
   ) {
     this.options = defaults(options, {
+      createHistory: createHistoryInstance,
+      getLocation: ()=> typeof window !== 'undefined' && window.location,
       useHistory: true,
       searchOnload: true,
       httpHeaders: {},
@@ -73,7 +77,7 @@ export class SearchkitManager {
     if(this.options.useHistory) {
       console.log('usehistory??????')
       this.unlistenHistory()
-      this.history = createHistory()
+      this.history = this.options.createHistory()
       this.listenToHistory()
       // this.un
     } else {
@@ -97,20 +101,21 @@ export class SearchkitManager {
   }
 
   listenToHistory() {
-    console.log('this.options?????', this.options.searchOnload)
-    let callsBeforeListen = (this.options.searchOnload) ? 1: 2
-    console.log('callsbeforelisten????', callsBeforeListen)
-    this._unlistenHistory = this.history.listen(after(callsBeforeListen, (location)=>{
+    this._unlistenHistory = this.history.listen((location, action)=>{
       console.log('listenTohistory')
       // action is POP when the browser modified
-      if(location.action === "POP") {
-        this.registrationCompleted.then(()=> {
-          this.searchFromUrlQuery(location.query)
-        }).catch((e)=> {
-          console.error(e.stack)
-        })
+      if(action === "POP") {
+        this._searchWhenCompleted(location)
       }
-    }))
+    })
+  }
+
+  _searchWhenCompleted(location){
+    this.registrationCompleted.then(()=> {
+      this.searchFromUrlQuery(location.search)
+    }).catch((e)=> {
+      console.error(e.stack)
+    })
   }
 
   runInitialSearch() {
@@ -149,23 +154,43 @@ export class SearchkitManager {
     }
     this._search()
     if(this.options.useHistory) {
+      console.log('is using history???')
       const historyMethod = (replaceState) ?
       this.history.replace : this.history.push
-      historyMethod({pathname: window.location.pathname, query: this.state})
+      console.log('WTF is historymethod', historyMethod)
+      console.log('pathname???', window.location.pathname)
+      console.log('state???', this.state)
+      let url = this.options.getLocation().pathname + '?' + encodeObjUrl(this.state)
+      historyMethod.call(this.history, url)
     }
   }
 
   _search() {
     this.state = this.accessors.getState()
-    const params = this.state || this.accessors.getState()
-    const queryString = qs.stringify(params, { encode: true})
-    // this.query = this.buildQuery()
+    const queryString = this.buildQuery()
     this.emitter.trigger()
     this.currentSearchRequest && this.currentSearchRequest.deactivate()
     this.currentSearchRequest = new SearchRequest(
       this.transport, queryString, this
     )
     this.currentSearchRequest.run()
+  }
+
+  buildQuery() {
+    const params = this.state || this.accessors.getState()
+    let keys = []
+    for (let key in params) {
+      if (params.hasOwnProperty(key)) {
+        console.log(key, params[key]);
+        if (Array.isArray(params[key])) {
+          keys = keys.concat(key+'='+params[key].join(','))
+        } else if(typeof params[key] === 'string') {
+          keys = keys.concat(key+'='+params[key])
+        }
+      }
+    }
+    const joined = keys.join('&')
+    return joined
   }
 
   setResults(results) {

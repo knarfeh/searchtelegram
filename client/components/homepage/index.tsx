@@ -9,10 +9,11 @@ import {
   RefinementListFilter
 } from '../search';
 import { SearchkitManager, SearchkitProvider} from '../../core';
+import { createHistoryInstance } from '../../core/history';
 // import './styles.css';
 
 const host = "/api/v1"
-const searchkit = new SearchkitManager(host, {useHistory: true})
+const searchkit = new SearchkitManager(host, {useHistory: true, createHistory: createHistoryInstance})
 
 export default class Homepage extends React.Component {
   /*eslint-disable */

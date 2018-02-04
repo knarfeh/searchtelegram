@@ -1,8 +1,8 @@
 import * as React from "react";
 import { ItemProps } from './ListProps'
-// import {
-  // FastClick
-// } from '../../../core/react/FastClick';
+import {
+  FastClick
+} from '../../../core/react/FastClick';
 
 export interface ItemComponentProps extends ItemProps {
   showCheckbox: boolean
@@ -19,13 +19,13 @@ function itemRenderer(props: ItemComponentProps) {
     .mix(bemBlocks.container("item"))
   const hasCount = showCount && (count != undefined) && (count != null)
   return (
-    // <FastClick handler={onClick}>
+    <FastClick handler={onClick}>
       <div className={className} style={style} data-qa="option" data-key={itemKey}>
         {showCheckbox ? <input type="checkbox" data-qa="checkbox" checked={active} readOnly className={block("checkbox").state({ active }) } ></input> : undefined}
         <div data-qa="label" className={block("text") }>{label}</div>
         {hasCount ? < div data-qa="count" className={block("count") }>{count}</div> : undefined}
       </div>
-    // </FastClick>
+    </FastClick>
   )
 }
 

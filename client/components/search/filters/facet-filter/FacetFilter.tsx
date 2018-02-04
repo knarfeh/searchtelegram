@@ -53,6 +53,12 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
     }
   }
 
+  toggleFilter(key) {
+    console.log('toggle filter????', key)
+    this.accessor.state = this.accessor.state.toggle(key)
+    this.searchkit.performSearch()
+  }
+
   setFilter(keys) {
     this.accessor.state = this.accessor.state.setValue(keys)
   }
@@ -95,6 +101,7 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
       disabled: !this.hasOptions()
     }, [
       renderComponent(listComponent, {
+        toggleItem: this.toggleFilter.bind(this),
         key: 'listComponent',
         items: this.getItems(),
         itemComponent: this.props.itemComponent,
