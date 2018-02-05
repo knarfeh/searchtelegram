@@ -157,9 +157,6 @@ export class SearchkitManager {
       console.log('is using history???')
       const historyMethod = (replaceState) ?
       this.history.replace : this.history.push
-      console.log('WTF is historymethod', historyMethod)
-      console.log('pathname???', window.location.pathname)
-      console.log('state???', this.state)
       let url = this.options.getLocation().pathname + '?' + encodeObjUrl(this.state)
       historyMethod.call(this.history, url)
     }

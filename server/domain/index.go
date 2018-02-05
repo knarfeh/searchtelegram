@@ -19,6 +19,17 @@ type TgResource struct {
 	Tags []Tag  `json:"tags" validate:"dive"`
 }
 
+// TgTagBucket ...
+type TgTagBucket struct {
+	Key      string `json:"key"`
+	DocCount int32  `json:"doc_count"`
+}
+
+// Buckets ...
+type TgTagBuckets struct {
+	Buckets []TgTagBucket `json:"buckets"`
+}
+
 type (
 	// CustomValidator ...
 	CustomValidator struct {
@@ -39,4 +50,9 @@ func NewValidator() *CustomValidator {
 // NewTgResource ...
 func NewTgResource() *TgResource {
 	return &TgResource{}
+}
+
+// NewTgTagBuckets ...
+func NewTgTagBuckets() *TgTagBuckets {
+	return &TgTagBuckets{}
 }

@@ -19,15 +19,91 @@ import (
 // your app as you wish.
 type API struct{}
 
+// OKResponse ...
 var OKResponse = map[string]interface{}{"ok": true}
 
 // Bind attaches api routes
 func (api *API) Bind(group *echo.Group) {
-	group.GET("/v1/tg/:name/exist", api.CheckTgResourceExist)
-	group.GET("/v1/tg/:name", api.GetTgResource)
-	group.POST("/v1/tg", api.CreateTgResource)
 	group.PUT("/v1/tg", api.UpdateTgResource)
+	group.POST("/v1/tg", api.CreateTgResource)
+	group.GET("/v1/tg/:name", api.GetTgResource)
+	group.GET("/v1/tg/:name/exist", api.CheckTgResourceExist)
 	group.GET("/v1/search", api.SearchTgResource)
+	group.GET("/v1/tags", api.GetTgTags)
+}
+
+// GetTgTags ...
+func (api *API) GetTgTags(c echo.Context) error {
+	// TODO: Add cache
+	app := c.Get("app").(*App)
+	agg := elastic.NewTermsAggregation().Field("tags.name.keyword")
+
+	search := app.ESClient.Client.Search().Index("telegram").Type("resource")
+	allTags, _ := search.Aggregation("allTags", agg).Do(context.TODO())
+	instance := domain.NewTgTagBuckets()
+	json.Unmarshal(*allTags.Aggregations["allTags"], instance)
+	result := make(map[string]interface{})
+	result["results"] = instance.Buckets
+	return c.JSON(http.StatusOK, result)
+}
+
+// SearchTgResource ...
+func (api *API) SearchTgResource(c echo.Context) error {
+	app := c.Get("app").(*App)
+
+	queryString := c.FormValue("q")
+	tags := c.FormValue("tags")
+	page := c.FormValue("page")
+	pageSize := c.FormValue("page_size")
+
+	size := 10
+	from := 0
+	if pageSize != "" {
+		size, _ = strconv.Atoi(pageSize)
+	}
+	if page != "" {
+		intPage, _ := strconv.Atoi(page)
+		from = (intPage - 1) * size
+	}
+	if tags == "" {
+		tags = "people group channel"
+	} else {
+		tags = strings.Replace(tags, ",", " ", -1)
+	}
+	if queryString == "" {
+		result := make(map[string]interface{})
+		result["total"] = 0
+		result["from"] = from
+		result["size"] = size
+		result["results"] = make([]*domain.TgResource, 0, 0)
+		return c.JSON(http.StatusOK, result)
+	}
+
+	app.Engine.Logger.Infof("query: %s, tags: %s, page: %s, pageSize: %s", queryString, tags, page, pageSize)
+	boolQuery := elastic.NewBoolQuery()
+	boolQuery = boolQuery.Filter(elastic.NewQueryStringQuery(queryString))
+	boolQuery = boolQuery.Must(elastic.NewMoreLikeThisQuery().LikeText(tags).Field(
+		"tags.name",
+	).MinDocFreq(0).MinTermFreq(0))
+	search := app.ESClient.Client.Search().Index("telegram").Type("resource").From(from).Size(size)
+	searchResult, err := search.Query(boolQuery).Do(context.TODO())
+	if err != nil {
+		panic(err)
+	}
+
+	values := make([]*domain.TgResource, 0, searchResult.Hits.TotalHits)
+	totalItem := strconv.FormatInt(searchResult.TotalHits(), 10)
+	for _, hit := range searchResult.Hits.Hits {
+		instance := domain.NewTgResource()
+		json.Unmarshal(*hit.Source, instance)
+		values = append(values, instance)
+	}
+	result := make(map[string]interface{})
+	result["total"] = totalItem
+	result["from"] = from
+	result["size"] = size
+	result["results"] = values
+	return c.JSON(http.StatusOK, result)
 }
 
 // CheckTgResourceExist ...
@@ -110,63 +186,4 @@ func (api *API) UpdateTgResource(c echo.Context) error {
 	}
 	app.Engine.Logger.Infof("New version of tgResource %q is now %d", updateResult.Id, updateResult.Version)
 	return c.JSON(http.StatusOK, updateResult)
-}
-
-// SearchTgResource ...
-func (api *API) SearchTgResource(c echo.Context) error {
-	app := c.Get("app").(*App)
-
-	queryString := c.FormValue("q")
-	tags := c.FormValue("tags")
-	page := c.FormValue("page")
-	pageSize := c.FormValue("page_size")
-
-	size := 10
-	from := 0
-	if pageSize != "" {
-		size, _ = strconv.Atoi(pageSize)
-	}
-	if page != "" {
-		intPage, _ := strconv.Atoi(page)
-		from = (intPage - 1) * size
-	}
-	if tags == "" {
-		tags = "people group channel"
-	} else {
-		tags = strings.Replace(tags, ",", " ", -1)
-	}
-	if queryString == "" {
-		result := make(map[string]interface{})
-		result["total"] = 0
-		result["from"] = from
-		result["size"] = size
-		result["results"] = make([]*domain.TgResource, 0, 0)
-		return c.JSON(http.StatusOK, result)
-	}
-
-	app.Engine.Logger.Infof("query: %s, tags: %s, page: %s, pageSize: %s", queryString, tags, page, pageSize)
-	boolQuery := elastic.NewBoolQuery()
-	boolQuery = boolQuery.Filter(elastic.NewQueryStringQuery(queryString))
-	boolQuery = boolQuery.Must(elastic.NewMoreLikeThisQuery().LikeText(tags).Field(
-		"tags.name",
-	).MinDocFreq(0).MinTermFreq(0))
-	search := app.ESClient.Client.Search().Index("telegram").Type("resource").From(from).Size(size)
-	searchResult, err := search.Query(boolQuery).Do(context.TODO())
-	if err != nil {
-		panic(err)
-	}
-
-	values := make([]*domain.TgResource, 0, searchResult.Hits.TotalHits)
-	totalItem := strconv.FormatInt(searchResult.TotalHits(), 10)
-	for _, hit := range searchResult.Hits.Hits {
-		instance := domain.NewTgResource()
-		json.Unmarshal(*hit.Source, instance)
-		values = append(values, instance)
-	}
-	result := make(map[string]interface{})
-	result["total"] = totalItem
-	result["from"] = from
-	result["size"] = size
-	result["results"] = values
-	return c.JSON(http.StatusOK, result)
 }
