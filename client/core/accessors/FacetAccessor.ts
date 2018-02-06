@@ -42,4 +42,19 @@ export class FacetAccessor extends FilterBasedAceessor<ArrayState> {
   constructor(key, options: FacetAccessorOptions) {
     super(key, options.id)
   }
+
+  getRawBuckets() {
+    return this.getAggregations('')
+  }
+
+  getBuckets() {
+    let rawBuckets: Array<any> = this.getRawBuckets()
+    let keyIndex = {}
+    each(rawBuckets, (item) => {
+      item.key = String(item.key)
+      // keyIndex[item.key]
+      item['title'] = item.key
+    })
+    return rawBuckets
+  }
 }

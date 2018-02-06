@@ -1,6 +1,6 @@
 import { QueryAccessor } from './accessors/QueryAccessor';
 import { SearchAxiosApiTransport, SearchApiTransportOptions } from './transport'
-import { EventEmitter } from "./support";
+import { EventEmitter, GuidGenerator } from "./support";
 import { AccessorManager } from './AccessorManager';
 import { createHistoryInstance, encodeObjUrl, decodeObjString } from './history';
 import { SearchRequest } from './SearchRequest';
@@ -37,6 +37,7 @@ export class SearchkitManager {
   error: any
   emitter: EventEmitter
   history
+  guidGenerator: GuidGenerator
   host: string
   initialLoading: boolean
   loading: boolean
@@ -59,6 +60,7 @@ export class SearchkitManager {
     })
     console.log('constructor, options?????', this.options)
     this.host = host
+    this.guidGenerator = new GuidGenerator()
     this.transport = this.options.transport || new SearchAxiosApiTransport(host, {
       headers: this.options.httpHeaders,
       searchUrlPath: this.options.searchUrlPath
@@ -73,17 +75,14 @@ export class SearchkitManager {
   }
 
   setupListeners() {
-    this.initialLoading = true
+    this.initialLoading = !this.results
     if(this.options.useHistory) {
       console.log('usehistory??????')
       this.unlistenHistory()
       this.history = this.options.createHistory()
       this.listenToHistory()
-      // this.un
-    } else {
-      console.log('setuplisteners, not use history')
-      this.runInitialSearch()
     }
+    this.runInitialSearch()
   }
 
   addAccessor(accessor) {
@@ -162,6 +161,13 @@ export class SearchkitManager {
     }
   }
 
+  getResultsAndState() {
+    return {
+      results: this.results,
+      state: this.state
+    }
+  }
+
   _search() {
     this.state = this.accessors.getState()
     const queryString = this.buildQuery()
@@ -171,6 +177,9 @@ export class SearchkitManager {
       this.transport, queryString, this
     )
     this.currentSearchRequest.run()
+      .then(()=> {
+        return this.getResultsAndState()
+      })
   }
 
   buildQuery() {
@@ -190,8 +199,12 @@ export class SearchkitManager {
     return joined
   }
 
+  guid(prefix){
+    return this.guidGenerator.guid(prefix)
+  }
+
   setResults(results) {
-    console.log('got results', results)
+    console.log('Searchkit Manager set results', results)
     this.results = results
     this.error = null
     this.accessors.setResults(results)

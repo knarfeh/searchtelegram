@@ -44,7 +44,6 @@ export class AccessorManager {
     console.log('accessor manager, add accessor')
     if(accessor instanceof StatefulAccessor) {
       if(accessor instanceof BaseQueryAccessor && accessor.key == 'q') {
-        console.log('is q!!!!')
         if(false) {
 
         } else {
@@ -53,8 +52,12 @@ export class AccessorManager {
       }
       let existingAccessor = this.statefuleAccessors[accessor.key]
       if(existingAccessor) {
-        existingAccessor.incrementRef()
-        return existingAccessor
+        if (existingAccessor.constructor === accessor.constructor) {
+          existingAccessor.incrementRef()
+          return existingAccessor
+        } else {
+          throw new Error(`Multiple imcompatible components with id='${accessor.key}' existing on the page`)
+        }
       } else {
         this.statefuleAccessors[accessor.key] = accessor
       }

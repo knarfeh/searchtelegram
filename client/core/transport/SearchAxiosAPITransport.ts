@@ -34,6 +34,10 @@ export class SearchAxiosApiTransport extends SearchAPITransport {
       .then(this.getData)
   }
 
+  getTags() {
+    return this.axios.get("/tags").then(this.getData)
+  }
+
   getData(response) {
     return response.data
   }

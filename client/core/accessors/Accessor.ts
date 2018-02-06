@@ -32,6 +32,16 @@ export class Accessor {
 
   setSearchkitManager(searchkit) {
     this.searchkit = searchkit
+    // this.uuid = searchkit.guid()
+    console.log('WTF is guid???', this.uuid)
+    this.results = this.searchkit.results
+    console.log('WTF is search result', this.results)
+  }
+
+  getAggregations(defaultValue){
+    const results = this.getResults()
+    return results
+    // return get(results, )
   }
 
   getResults() {

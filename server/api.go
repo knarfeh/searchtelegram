@@ -71,12 +71,7 @@ func (api *API) SearchTgResource(c echo.Context) error {
 		tags = strings.Replace(tags, ",", " ", -1)
 	}
 	if queryString == "" {
-		result := make(map[string]interface{})
-		result["total"] = 0
-		result["from"] = from
-		result["size"] = size
-		result["results"] = make([]*domain.TgResource, 0, 0)
-		return c.JSON(http.StatusOK, result)
+		queryString = "*"
 	}
 
 	app.Engine.Logger.Infof("query: %s, tags: %s, page: %s, pageSize: %s", queryString, tags, page, pageSize)

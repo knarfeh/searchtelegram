@@ -30,6 +30,10 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
     // this.toggleView
   }
 
+  componentDidMount() {
+    var self = this;
+}
+
   getAccessorOptions() {
     const {
       field, id, title, size, orderKey, orderDirection,
@@ -60,7 +64,10 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
   }
 
   setFilter(keys) {
+    console.log('Facet set filter, keys???', keys)
     this.accessor.state = this.accessor.state.setValue(keys)
+    console.log('!!!!performSearch in facetFilter')
+    this.searchkit.performSearch()
   }
 
   toggleViewMoreOption(option: ISizeOption) {
@@ -79,15 +86,30 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
   }
 
   getItems() {
-    console.log('TODO, return items')
+    // this.accessor.getAggregations()
+    // const result = this.accessor.getResults()
+    // console.log('result from accessor???', result)
+    // Object.keys(result).forEach(function(key) {
+    //   console.log(key, result[key]);
+    //   result['title'] = result[key]
+    // });
+    // const result = this.accessor.getBuckets()
+    // console.log('now, result: ', result)
+    // return result
+    // console.log('get items, test????', test)
+    // console.log('TODO, return items')
     const items = [
       {
-        key: 'key1',
-        title: 'title1'
+        key: 'people',
+        title: 'people'
       },
       {
-        key: 'key2',
-        title: 'title2'
+        key: 'channel',
+        title: 'channel'
+      },
+      {
+        key: 'group',
+        title: 'group'
       }
     ]
     return items

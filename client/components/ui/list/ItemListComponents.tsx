@@ -45,16 +45,14 @@ export class AbstractItemList extends React.Component<ItemListProps, {}> {
     const toggleFunc = multiselect ? toggleItem: (key => setItems([key]))
 
     const actions = map(items, (option) => {
-      console.log('wtf is option???', option)
       const label = option.title || option.label || option.key
-      console.log('key??????', option.key)
       return React.createElement(itemComponent, {
         label: label,
         onClick: () => toggleFunc(option.key),
         bemBlocks: bemBlocks,
         key: option.key,
         itemKey: option.key,
-        count: 666,
+        // count: 666,
         disabled: option.disabled,
         active: this.isActive(option)
       })
