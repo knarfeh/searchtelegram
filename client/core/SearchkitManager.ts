@@ -45,6 +45,7 @@ export class SearchkitManager {
   query
   results: any
   state: any
+  translateFunction: Function
   transport: SearchAxiosApiTransport
 
   constructor(
@@ -71,6 +72,7 @@ export class SearchkitManager {
     this.registrationCompleted = new Promise((resolve)=> {
       this.completeRegistration = resolve
     })
+    this.translateFunction = constant(undefined)
     this.emitter = new EventEmitter()
   }
 
@@ -182,6 +184,10 @@ export class SearchkitManager {
       })
   }
 
+  translate(key) {
+    return this.translateFunction(key)
+  }
+
   buildQuery() {
     const params = this.state || this.accessors.getState()
     let keys = []
@@ -203,13 +209,20 @@ export class SearchkitManager {
     return this.guidGenerator.guid(prefix)
   }
 
+  getHitsCount() {
+    const hitsCount = get(this.results, ["total"], 0)
+    console.log('hitscount', hitsCount)
+    return get(this.results, ["total"], 0)
+  }
+
   setResults(results) {
     console.log('Searchkit Manager set results', results)
     this.results = results
     this.error = null
     this.accessors.setResults(results)
-    // this.onResponseChange()
+    this.onResponseChange()
     // TODO
+    // this.getHits()
   }
 
   setError(error) {

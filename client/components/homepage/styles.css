@@ -7,3 +7,9 @@
   margin-right:15px;
   line-height: 16px;
 }
+
+.option {
+  flex: 0 0 250px;
+  padding: 13px 20px;
+  margin-left: 15px;
+}

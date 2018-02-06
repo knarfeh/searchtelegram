@@ -10,6 +10,7 @@ import {
 } from '../search';
 import { SearchkitManager, SearchkitProvider} from '../../core';
 import { createHistoryInstance } from '../../core/history';
+import { HitsStats } from '../search/hits-stats/HitsStats';
 // import './styles.css';
 
 const host = "/api/v1"
@@ -36,15 +37,27 @@ export default class Homepage extends React.Component {
             <div className="my-logo">Search Telegram</div>
             <SearchBox searchOnChange={true} autofocus={true}>
             </SearchBox>
+            <div className="option">
+              <button type='button'>Submit</button>
+            </div>
           </TopBar>
           <LayoutBody>
             <SideBar>
               <RefinementListFilter id="tags" title="Tags" field="fieldTODO" size={10}/>
             </SideBar>
             <LayoutResults>
-              <p>Result</p>
+              <ActionBar>
+                <ActionBarRow>
+                  <HitsStats translations={{
+                    "hitstats.results_found": "{hitCount} results found"
+                  }}/>
+                </ActionBarRow>
+              </ActionBar>
             </LayoutResults>
+            <SideBar>
+            </SideBar>
           </LayoutBody>
+
         </Layout>
       </SearchkitProvider>
     );

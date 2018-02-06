@@ -30,4 +30,12 @@ export class Utils {
     )
   }
 
+  static translate(key, interpolations?) {
+    if (interpolations) {
+      return Utils.interpolate(key, interpolations)
+    } else {
+      return key
+    }
+  }
+
 }

@@ -1,4 +1,4 @@
-require('normalize.css');
+// require('normalize.css');
 require('./global');
 
 /**

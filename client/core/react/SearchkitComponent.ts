@@ -1,4 +1,5 @@
 import * as React from "react"
+import * as PropTypes from 'prop-types';
 import { SearchkitManager } from "../SearchkitManager";
 import { Accessor } from "../accessors/Accessor"
 import { Utils } from "../support"
@@ -6,6 +7,7 @@ var block = require('bem-cn');
 const keys = require("lodash/keys")
 const without = require("lodash/without")
 const transform = require("lodash/transform")
+const mapValues = require("lodash/mapValues")
 
 export interface SearchkitComponentProps {
   mod?: string
@@ -19,10 +21,15 @@ export class SearchkitComponent<P extends SearchkitComponentProps,S> extends Rea
   searchkit: SearchkitManager
   accessor: Accessor
   stateListenerUnsubscribe: Function
+  translations: Object = {}
   unmounted = false
 
   static contextTypes: React.ValidationMap<any> = {
     searchkit: React.PropTypes.instanceOf(SearchkitManager)
+  }
+
+  static translationsPropType = (translations)=> {
+    return PropTypes.shape(mapValues(translations, ()=> PropTypes.string))
   }
 
   static propTypes: any = {
@@ -41,6 +48,14 @@ export class SearchkitComponent<P extends SearchkitComponentProps,S> extends Rea
 
   defineAccessor(): Accessor{
     return null;
+  }
+
+  translate(key, interpolations?) {
+    let translation = (
+      (this.searchkit.translate(key)) ||
+      (this.props.translations && this.props.translations[key]) ||
+      this.translations[key] || key)
+    return Utils.translate(translation, interpolations)
   }
 
   get bemBlocks() {

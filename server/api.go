@@ -36,14 +36,15 @@ func (api *API) Bind(group *echo.Group) {
 func (api *API) GetTgTags(c echo.Context) error {
 	// TODO: Add cache
 	app := c.Get("app").(*App)
-	agg := elastic.NewTermsAggregation().Field("tags.name.keyword")
 
+	agg := elastic.NewTermsAggregation().Field("tags.name.keyword")
 	search := app.ESClient.Client.Search().Index("telegram").Type("resource")
 	allTags, _ := search.Aggregation("allTags", agg).Do(context.TODO())
 	instance := domain.NewTgTagBuckets()
 	json.Unmarshal(*allTags.Aggregations["allTags"], instance)
 	result := make(map[string]interface{})
 	result["results"] = instance.Buckets
+	result["total"] = len(instance.Buckets)
 	return c.JSON(http.StatusOK, result)
 }
 
@@ -87,14 +88,13 @@ func (api *API) SearchTgResource(c echo.Context) error {
 	}
 
 	values := make([]*domain.TgResource, 0, searchResult.Hits.TotalHits)
-	totalItem := strconv.FormatInt(searchResult.TotalHits(), 10)
 	for _, hit := range searchResult.Hits.Hits {
 		instance := domain.NewTgResource()
 		json.Unmarshal(*hit.Source, instance)
 		values = append(values, instance)
 	}
 	result := make(map[string]interface{})
-	result["total"] = totalItem
+	result["total"] = searchResult.TotalHits()
 	result["from"] = from
 	result["size"] = size
 	result["results"] = values
