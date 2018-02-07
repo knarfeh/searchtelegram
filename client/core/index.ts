@@ -5,3 +5,4 @@ export * from './SearchRequest';
 export * from './react';
 export * from './accessors';
 export * from './history';
+export * from './query';

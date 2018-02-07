@@ -66,7 +66,6 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
   setFilter(keys) {
     console.log('Facet set filter, keys???', keys)
     this.accessor.state = this.accessor.state.setValue(keys)
-    console.log('!!!!performSearch in facetFilter')
     this.searchkit.performSearch()
   }
 

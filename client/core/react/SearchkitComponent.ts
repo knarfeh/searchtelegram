@@ -3,6 +3,7 @@ import * as PropTypes from 'prop-types';
 import { SearchkitManager } from "../SearchkitManager";
 import { Accessor } from "../accessors/Accessor"
 import { Utils } from "../support"
+import { ImmutableQuery } from './../query';
 var block = require('bem-cn');
 const keys = require("lodash/keys")
 const without = require("lodash/without")
@@ -93,6 +94,10 @@ export class SearchkitComponent<P extends SearchkitComponentProps,S> extends Rea
       this.searchkit.removeAccessor(this.accessor)
     }
     this.unmounted = true
+  }
+
+  getQuery(): ImmutableQuery {
+    return this.searchkit.query
   }
 
 }

@@ -51,4 +51,12 @@ export class Accessor {
   setResults(results) {
     this.results = results
   }
+
+  beforeBuildQuery() {
+
+  }
+
+  // buildSharedQuery(query: ImmutableQuery) {
+    // return query
+  // }
 }

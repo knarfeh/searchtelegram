@@ -158,6 +158,7 @@ export class SearchkitManager {
       console.log('is using history???')
       const historyMethod = (replaceState) ?
       this.history.replace : this.history.push
+      console.log('performSearch, this.state', this.state)
       let url = this.options.getLocation().pathname + '?' + encodeObjUrl(this.state)
       historyMethod.call(this.history, url)
     }
@@ -172,7 +173,7 @@ export class SearchkitManager {
 
   _search() {
     this.state = this.accessors.getState()
-    const queryString = this.buildQuery()
+    const queryString = this.buildQueryString()
     this.emitter.trigger()
     this.currentSearchRequest && this.currentSearchRequest.deactivate()
     this.currentSearchRequest = new SearchRequest(
@@ -188,7 +189,7 @@ export class SearchkitManager {
     return this.translateFunction(key)
   }
 
-  buildQuery() {
+  buildQueryString() {
     const params = this.state || this.accessors.getState()
     let keys = []
     for (let key in params) {

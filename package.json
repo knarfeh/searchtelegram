@@ -32,6 +32,7 @@
     "extract-text-webpack-plugin": "^2.1.0",
     "file-loader": "^0.11.1",
     "history": "^2.1.2",
+    "immutability-helper": "^2.6.4",
     "lodash": "^4.17.4",
     "merge-files-webpack-plugin": "^1.1.2",
     "node-sass": "^4.5.3",
