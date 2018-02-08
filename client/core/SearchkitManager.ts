@@ -4,6 +4,7 @@ import { EventEmitter, GuidGenerator } from "./support";
 import { AccessorManager } from './AccessorManager';
 import { createHistoryInstance, encodeObjUrl, decodeObjString } from './history';
 import { SearchRequest } from './SearchRequest';
+import { ImmutableQuery } from './index';
 // import * as Promise from 'bluebird';
 
 const defaults = require("lodash/defaults")
@@ -42,7 +43,7 @@ export class SearchkitManager {
   initialLoading: boolean
   loading: boolean
   options: SearchkitOptions
-  query
+  query: ImmutableQuery
   results: any
   state: any
   translateFunction: Function
@@ -73,6 +74,7 @@ export class SearchkitManager {
       this.completeRegistration = resolve
     })
     this.translateFunction = constant(undefined)
+    this.query = new ImmutableQuery()
     this.emitter = new EventEmitter()
   }
 
@@ -173,6 +175,7 @@ export class SearchkitManager {
 
   _search() {
     this.state = this.accessors.getState()
+    this.query = this.buildQuery()
     const queryString = this.buildQueryString()
     this.emitter.trigger()
     this.currentSearchRequest && this.currentSearchRequest.deactivate()
@@ -187,6 +190,10 @@ export class SearchkitManager {
 
   translate(key) {
     return this.translateFunction(key)
+  }
+
+  buildQuery() {
+    return this.accessors.buildQuery()
   }
 
   buildQueryString() {

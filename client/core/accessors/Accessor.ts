@@ -1,5 +1,6 @@
 import { Utils } from './../support/Utils';
 import { SearchkitManager } from './../SearchkitManager';
+import { ImmutableQuery } from './../query/ImmutableQuery';
 
 const get = require('lodash/get')
 const compact = require('lodash/compact')
@@ -9,11 +10,12 @@ export class Accessor {
   uuid: string
   results: any
   active: boolean
+  translations: Object
   refCount: number
 
   constructor() {
-    this.uuid = Utils.guid()
     this.active = true
+    this.translations = {}
     this.refCount = 0
   }
 
@@ -44,6 +46,14 @@ export class Accessor {
     // return get(results, )
   }
 
+  translate(key, interpolations?){
+    let translation = (
+      (this.searchkit && this.searchkit.translate(key)) ||
+       this.translations[key] ||
+       key)
+    return Utils.translate(translation, interpolations)
+  }
+
   getResults() {
     return this.results
   }
@@ -56,7 +66,11 @@ export class Accessor {
 
   }
 
-  // buildSharedQuery(query: ImmutableQuery) {
-    // return query
-  // }
+  buildSharedQuery(query: ImmutableQuery) {
+    return query
+  }
+
+  buildOwnQuery(query: ImmutableQuery) {
+    return query
+  }
 }

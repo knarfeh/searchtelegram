@@ -52,6 +52,13 @@ export class ImmutableQuery {
     return new ImmutableQuery(update(this.index, updateDef))
   }
 
+  addFilter(key, filter) {
+    return this.update({
+      filters: { $push: [filter]},
+      filtersMap: { $merge: { [key]: filter }}
+    })
+  }
+
   getFilters(keys=[]) {
     // return this.getFiltersWithoutKeys(keys)
   }

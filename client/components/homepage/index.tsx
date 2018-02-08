@@ -11,6 +11,7 @@ import {
 import { SearchkitManager, SearchkitProvider} from '../../core';
 import { createHistoryInstance } from '../../core/history';
 import { HitsStats } from '../search/hits-stats/HitsStats';
+import { GroupedSelectedFilters } from '../search';
 // import './styles.css';
 
 const host = "/api/v1"
@@ -47,6 +48,9 @@ export default class Homepage extends React.Component {
             </SideBar>
             <LayoutResults>
               <ActionBar>
+                <ActionBarRow>
+                  <GroupedSelectedFilters/>
+                </ActionBarRow>
                 <ActionBarRow>
                   <HitsStats translations={{
                     "hitstats.results_found": "{hitCount} results found"

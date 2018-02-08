@@ -1,6 +1,8 @@
 import { FacetAccessorOptions } from './FacetAccessor';
 import { FilterBasedAceessor } from './FilterBasedAccessor';
 import { ArrayState } from './../state/';
+// import { FieldContext } from '../query';
+import { SelectedFilter } from '../query';
 
 const assign = require("lodash/assign")
 const map = require("lodash/map")
@@ -38,9 +40,11 @@ export class FacetAccessor extends FilterBasedAceessor<ArrayState> {
   defaultSize: number
   size: number
   uuid: string
+  // fieldContext: FieldContext
 
   constructor(key, options: FacetAccessorOptions) {
     super(key, options.id)
+    this.options = options
   }
 
   getRawBuckets() {
@@ -56,5 +60,23 @@ export class FacetAccessor extends FilterBasedAceessor<ArrayState> {
       item['title'] = item.key
     })
     return rawBuckets
+  }
+
+  buildSharedQuery(query){
+    var filters = this.state.getValue()
+    console.log('WTF is buildSharedQuery??? filter', filters)
+    console.log('And wtf is query', query)
+    var selectedFilters:Array<SelectedFilter> = map(filters, (filter)=> {
+      console.log('WTF is option???', this.options)
+      return {
+        name:this.options.title || this.translate(this.options.field),
+        value:this.translate(filter),
+        id:this.options.id,
+        remove:()=> this.state = this.state.remove(filter)
+      }
+    })
+    query = query.addSelectedFilters(selectedFilters)
+    console.log('buildShareQuery, wtf is query', query)
+    return query
   }
 }

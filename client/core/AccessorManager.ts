@@ -1,3 +1,4 @@
+import { ImmutableQuery } from './query/ImmutableQuery';
 import { BaseQueryAccessor, Accessor, StatefulAccessor, noopQueryAccessor } from './accessors';
 import { Utils } from './support/Utils';
 
@@ -100,6 +101,25 @@ export class AccessorManager {
     each(
       this.getStatefuleAccessors(),
       accessor => accessor.onStateChange(oldState)
+    )
+  }
+
+  buildSharedQuery(query){
+    return reduce(this.getActiveAccessors(), (query, accessor)=>{
+      return accessor.buildSharedQuery(query)
+    }, query)
+  }
+
+  buildOwnQuery(query){
+    return reduce(this.getActiveAccessors(), (query, accessor)=>{
+      return accessor.buildOwnQuery(query)
+    }, query)
+  }
+
+  buildQuery(){
+    each(this.getActiveAccessors(), accessor => accessor.beforeBuildQuery())
+    return this.buildOwnQuery(
+      this.buildSharedQuery(new ImmutableQuery())
     )
   }
 
