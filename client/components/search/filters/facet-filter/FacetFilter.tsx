@@ -32,7 +32,16 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
 
   componentDidMount() {
     var self = this;
-}
+    this.searchkit.transport.getTags().then( res=> {
+      console.log('componentDidmount, result???', res)
+      Object.keys(res["results"]).forEach(function(key) {
+        console.log(key, res["results"][key]);
+        res["results"][key]['title'] = res["results"][key]['key']
+      });
+      console.log('now, res: ', res)
+      this.setState({tags: res["results"]})
+    })
+  }
 
   getAccessorOptions() {
     const {
@@ -86,8 +95,8 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
 
   getItems() {
     // this.accessor.getAggregations()
-    // const result = this.accessor.getResults()
-    // console.log('result from accessor???', result)
+    const result = this.accessor.getResults()
+    console.log('result from accessor???', result)
     // Object.keys(result).forEach(function(key) {
     //   console.log(key, result[key]);
     //   result['title'] = result[key]
@@ -97,6 +106,9 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
     // return result
     // console.log('get items, test????', test)
     // console.log('TODO, return items')
+    // const myitems = this.state
+    // console.log('myitems???', myitems)
+    // return myitems["tags"]
     const items = [
       {
         key: 'people',
@@ -116,6 +128,16 @@ export class FacetFilter<T extends FacetFilterProps> extends SearchkitComponent<
 
   render() {
     const { listComponent, containerComponent, showCount, title, id } = this.props
+    // // let items = this.state.tags
+    // let items = []
+    // // let items = this.state.tags
+    // if (this.state === null) {
+    //   let items = []
+    // } else {
+    //   let items = this.state.tags
+    // }
+    // console.log('WTf is this.state???', this.state)
+
     return renderComponent(containerComponent, {
       title,
       className: id ? `filter--${id}` : undefined,

@@ -17,13 +17,14 @@ export class StatefulAccessor<T extends State<any>> extends Accessor {
   }
 
   urlWithState(state: T) {
-    console.log('url with state!!!!!')
+    console.log('url with state!!!!!, this.urlKey', this.urlKey)
     return this.searchkit.buildSearchUrl({ [this.urlKey]: state})
   }
 
   fromQueryObject(ob) {
-    console.log('Statefulaccessor, fromQueryObject????')
+    console.log('Statefulaccessor, fromQueryObject????, this.urlKey???', this.urlKey)
     let value = ob[this.urlKey]
+    console.log('WTF is value: ', value)
     this.state = this.state.setValue(value)
   }
 

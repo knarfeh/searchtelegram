@@ -64,10 +64,7 @@ export class FacetAccessor extends FilterBasedAceessor<ArrayState> {
 
   buildSharedQuery(query){
     var filters = this.state.getValue()
-    console.log('WTF is buildSharedQuery??? filter', filters)
-    console.log('And wtf is query', query)
     var selectedFilters:Array<SelectedFilter> = map(filters, (filter)=> {
-      console.log('WTF is option???', this.options)
       return {
         name:this.options.title || this.translate(this.options.field),
         value:this.translate(filter),
@@ -76,7 +73,12 @@ export class FacetAccessor extends FilterBasedAceessor<ArrayState> {
       }
     })
     query = query.addSelectedFilters(selectedFilters)
-    console.log('buildShareQuery, wtf is query', query)
+    return query
+  }
+
+  buildOwnQuery(query) {
+    console.log('building my own query, wtf is query: ', query)
+    console.log('TODO: get tags')
     return query
   }
 }

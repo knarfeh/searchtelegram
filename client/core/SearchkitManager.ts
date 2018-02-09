@@ -124,13 +124,13 @@ export class SearchkitManager {
   runInitialSearch() {
     if(this.options.searchOnload) {
       this.registrationCompleted.then(()=> {
-        this._search()
+        this._searchWhenCompleted(this.options.getLocation())
       })
     }
   }
 
   searchFromUrlQuery(query) {
-    console.log('search from url query')
+    query = decodeObjString(query.replace(/^\?/, ""))
     this.accessors.setState(query)
     this._search()
   }
@@ -157,7 +157,6 @@ export class SearchkitManager {
     }
     this._search()
     if(this.options.useHistory) {
-      console.log('is using history???')
       const historyMethod = (replaceState) ?
       this.history.replace : this.history.push
       console.log('performSearch, this.state', this.state)
@@ -176,6 +175,7 @@ export class SearchkitManager {
   _search() {
     this.state = this.accessors.getState()
     this.query = this.buildQuery()
+    console.log('Done build shared query', this.query)
     const queryString = this.buildQueryString()
     this.emitter.trigger()
     this.currentSearchRequest && this.currentSearchRequest.deactivate()
@@ -217,6 +217,10 @@ export class SearchkitManager {
     return this.guidGenerator.guid(prefix)
   }
 
+  getHits() {
+    return get(this.results, ["results"], [])
+  }
+
   getHitsCount() {
     const hitsCount = get(this.results, ["total"], 0)
     console.log('hitscount', hitsCount)
@@ -250,5 +254,6 @@ export class SearchkitManager {
   compareResults(priviousResults, results) {
     console.log('TODO: compare results')
   }
+
 }
 

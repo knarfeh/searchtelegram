@@ -39,7 +39,7 @@ export default class Homepage extends React.Component {
             <SearchBox searchOnChange={true} autofocus={true}>
             </SearchBox>
             <div className="option">
-              <button type='button'>Submit</button>
+              {/* <button type='button'>Submit</button> */}
             </div>
           </TopBar>
           <LayoutBody>

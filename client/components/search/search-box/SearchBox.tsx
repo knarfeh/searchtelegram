@@ -4,7 +4,8 @@ import * as PropTypes from 'prop-types';
 import {
   QueryAccessor,
   SearchkitComponent,
-  SearchkitComponentProps
+  SearchkitComponentProps,
+  ImmutableQuery
 } from "../../../core"
 
 const defaults = require('lodash/defaults');
@@ -76,8 +77,14 @@ export class SearchBox extends SearchkitComponent<SearchBoxProps, any> {
 
   onSubmit(event) {
     event.preventDefault()
-    console.log('value?????', this.getValue())
-    console.log('searchQuery????')
+    // const query = this.getValue()
+    // if (query.startsWith('tags:')) {
+    //   console.log('WTF is getValue???', this.getValue())
+    //   this.setState({input: ''})
+    // }
+    // console.log('value?????', this.getValue())
+    // console.log('searchQuery????')
+    // this.accessor.buildSharedQuery(new ImmutableQuery)
     this.searchQuery(this.getValue())
   }
 
@@ -107,7 +114,6 @@ export class SearchBox extends SearchkitComponent<SearchBoxProps, any> {
     const query = e.target.value;
     console.log('onchange!!!!', query)
     if (this.props.searchOnChange) {
-      console.log('search on change?????')
       this.accessor.setQueryString(query)
       this.throttledSearch()
       this.forceUpdate()

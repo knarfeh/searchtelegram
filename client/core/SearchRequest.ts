@@ -14,7 +14,7 @@ export class SearchRequest {
   }
 
   run() {
-    console.log('todo: bind result')
+    console.log('todo: bind result, queryString???')
     return this.transport.search(this.queryString).then(
       this.setResults.bind(this)
     ).catch (

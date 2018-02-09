@@ -100,4 +100,12 @@ export class SearchkitComponent<P extends SearchkitComponentProps,S> extends Rea
     return this.searchkit.query
   }
 
+  getHits() {
+    return this.searchkit.getHits()
+  }
+
+  isInitialLoading() {
+    return this.searchkit.initialLoading
+  }
+
 }
