@@ -255,5 +255,12 @@ export class SearchkitManager {
     console.log('TODO: compare results')
   }
 
+  getAccessorByType(type) {
+    return this.accessors.getAccessorsByType(type)
+  }
+
+  hasHits() {
+    return this.getHitsCount() > 0
+  }
 }
 

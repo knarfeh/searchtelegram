@@ -104,6 +104,10 @@ export class SearchkitComponent<P extends SearchkitComponentProps,S> extends Rea
     return this.searchkit.getHits()
   }
 
+  hasHits() {
+    return this.searchkit.hasHits()
+  }
+
   isInitialLoading() {
     return this.searchkit.initialLoading
   }
