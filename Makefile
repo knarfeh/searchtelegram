@@ -17,6 +17,8 @@ LDFLAGS       = -w -X main.commitHash=$(GIT_HASH)
 GLIDE         := $(shell command -v glide 2> /dev/null)
 
 export ESHOSTPORT=http://localhost:9200
+export CGO_ENABLED=0
+export GOOS=linux
 
 build: $(ON) $(GO_BINDATA) clean $(TARGET)
 
@@ -32,10 +34,10 @@ $(GO_BINDATA):
 	go install $(IMPORT_PATH)/vendor/github.com/jteeuwen/go-bindata/...
 
 $(BUNDLE): $(APP)
-	@$(NODE_BIN)/webpack --progress --colors --bail 
+	@$(NODE_BIN)/webpack --progress --colors --bail
 
 $(TARGET): $(BUNDLE) $(BINDATA)
-	@go build -ldflags '$(LDFLAGS)' -o $@ $(IMPORT_PATH)/server
+	@go build -a -installsuffix cgo -ldflags '$(LDFLAGS)' -o $@ $(IMPORT_PATH)/server
 
 kill:
 	@kill `cat $(PID)` || true
