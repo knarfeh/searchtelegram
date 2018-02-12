@@ -4,6 +4,8 @@ COPY . /go/src/github.com/knarfeh/searchtelegram/
 
 ENV NVM_DIR /usr/local/nvm
 ENV NODE_VERSION 8.9.1
+ENV CGO_ENABLED 0
+ENV GOOS linux
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash \
     && source $NVM_DIR/nvm.sh \
@@ -23,10 +25,15 @@ FROM alpine:latest
 
 EXPOSE 80 5000
 
-RUN apk --update && \
+RUN apk update && \
   apk --no-cache add ca-certificates supervisor nginx
 
 WORKDIR /root/
 COPY --from=builder /go/bin/searchtelegram /bin/
-COPY --from=builder /go/bin/searchtelegram/conf/supervisord.conf /etc/supervisord.conf
-CMD ["/bin/searchtelegram", "run"]
+COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/*.sh /
+COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/supervisord.conf /etc/supervisord.conf
+COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/nginx.conf /etc/nginx/searchtelegram_nginx.conf
+RUN mkdir /var/log/supervisor
+RUN chmod +x /*.sh
+
+CMD ["/searchtelegram.sh"]

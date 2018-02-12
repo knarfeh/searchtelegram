@@ -17,8 +17,8 @@ LDFLAGS       = -w -X main.commitHash=$(GIT_HASH)
 GLIDE         := $(shell command -v glide 2> /dev/null)
 
 export ESHOSTPORT=http://localhost:9200
-export CGO_ENABLED=0
-export GOOS=linux
+# export CGO_ENABLED=0
+# export GOOS=linux
 
 build: $(ON) $(GO_BINDATA) clean $(TARGET)
 

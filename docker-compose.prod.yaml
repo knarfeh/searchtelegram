@@ -8,8 +8,8 @@ services:
     volumes:
       - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
     ports:
-      - "15000:5000"
-      - "18080:80"
+      - "5000:5000"
+      - "80:80"
     environment:
       ESHOSTPORT: 'http://elasticsearch:9200'
     networks:
@@ -21,9 +21,6 @@ services:
     volumes:
       - ./conf/es-kibana/dev/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - ./container-data/elasticsearch:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-      - "9300:9300"
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
