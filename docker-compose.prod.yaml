@@ -1,0 +1,43 @@
+version: '2'
+services:
+  searchtelegram:
+    image: daocloud.io/knarfeh/searchtelegram
+    build:
+      context: .
+      dockerfile: ./.docker/.dev.dockerfile
+    volumes:
+      - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
+    ports:
+      - "5000:5000"
+      - "80:80"
+    environment:
+      ESHOSTPORT: 'http://elasticsearch:9200'
+    networks:
+      - searchtelegram
+  elasticsearch:
+    build:
+      context: .
+      dockerfile: ./conf/es-kibana/dev/elasticsearch/Dockerfile
+    volumes:
+      - ./conf/es-kibana/dev/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./container-data/elasticsearch:/usr/share/elasticsearch/data
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - searchtelegram
+  kibana:
+    build:
+      context: .
+      dockerfile: ./conf/es-kibana/dev/kibana/Dockerfile
+    volumes:
+      - ./conf/es-kibana/dev/kibana/config/:/usr/share/kibana/config
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - searchtelegram
+
+networks:
+  searchtelegram:
+    driver: bridge
