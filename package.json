@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/axios": "^0.14.0",
+    "@types/lodash": "^4.14.102",
     "@types/node": "^9.4.0",
     "@types/react": "^15.6.12",
     "autoprefixer": "^7.1.1",
@@ -33,7 +34,6 @@
     "file-loader": "^0.11.1",
     "history": "^2.1.2",
     "immutability-helper": "^2.6.4",
-    "lodash": "^4.17.4",
     "merge-files-webpack-plugin": "^1.1.2",
     "node-sass": "^4.5.3",
     "normalize.css": "^6.0.0",
