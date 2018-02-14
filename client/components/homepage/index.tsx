@@ -1,5 +1,5 @@
 import * as React from 'react';
-import extend from 'lodash/extend';
+import * as lodash from 'lodash';
 import Helmet from 'react-helmet';
 
 import { SearchkitManager,SearchkitProvider,
@@ -11,17 +11,17 @@ import { SearchkitManager,SearchkitProvider,
   Layout, TopBar, LayoutBody, LayoutResults,
   ActionBar, ActionBarRow, SideBar, TagFilterConfig} from 'searchkit'
 
-const host = "http://localhost:18080/"
+const host = "http://localhost:9200/telegram"
 const searchkit = new SearchkitManager(host)
 
 const MovieHitsGridItem = (props)=> {
   const {bemBlocks, result} = props
-  let url = "http://www.imdb.com/title/" + result._source.imdbId
-  const source = extend({}, result._source, result.highlight)
+  let url = "https://cdn5.telesco.pe/file/qyqzjBHidDTCg5MWywQn5hHdpZkZvDRZnD9578Up785eEO2AXtzkPOFgHd0AK5TFgoNwaaJdv8lxQwfF-GsxrjaUpS_kdIOQtCVLD7QEllGg3d-PZ466DWzUHI8dgEyeXJgpCtOKMd0OnA4Ziyv1-ZulKozHv9t9OUgx0GKbZ7gac3-xTYx9S9y5k90XDh4N4dJmALLQaoLgBUDbDENeKAPOsSk0wnVdWHkG879wd2MRnQouYdnXldv2lIdXcQOdYj9J66uuRSx_X27O2Go3QjTYeP7pMtUz7BUCyos3YOOQOqB_xl_y7I4w84C3MHjv360Om5uFBT9mtyJL8iyR7A.jpg"
+  const source = lodash.extend({}, result._source, result.highlight)
   return (
     <div className={bemBlocks.item().mix(bemBlocks.container("item"))} data-qa="hit">
       <a href={url} target="_blank">
-        {/* <img data-qa="poster" alt="presentation" className={bemBlocks.item("poster")} src={result._source.poster} width="170" height="240"/> */}
+        <img data-qa="poster" alt="presentation" className={bemBlocks.item("poster")} src={url} width="170" height="240"/>
         <div data-qa="title" className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.name}}></div>
       </a>
     </div>
@@ -30,17 +30,20 @@ const MovieHitsGridItem = (props)=> {
 
 const MovieHitsListItem = (props)=> {
   const {bemBlocks, result} = props
-  let url = "http://www.imdb.com/title/" + result._source.imdbId
-  const source = extend({}, result._source, result.highlight)
+  let url = "https://cdn5.telesco.pe/file/qyqzjBHidDTCg5MWywQn5hHdpZkZvDRZnD9578Up785eEO2AXtzkPOFgHd0AK5TFgoNwaaJdv8lxQwfF-GsxrjaUpS_kdIOQtCVLD7QEllGg3d-PZ466DWzUHI8dgEyeXJgpCtOKMd0OnA4Ziyv1-ZulKozHv9t9OUgx0GKbZ7gac3-xTYx9S9y5k90XDh4N4dJmALLQaoLgBUDbDENeKAPOsSk0wnVdWHkG879wd2MRnQouYdnXldv2lIdXcQOdYj9J66uuRSx_X27O2Go3QjTYeP7pMtUz7BUCyos3YOOQOqB_xl_y7I4w84C3MHjv360Om5uFBT9mtyJL8iyR7A.jpg"
+  const source = lodash.extend({}, result._source, result.highlight)
   return (
     <div className={bemBlocks.item().mix(bemBlocks.container("item"))} data-qa="hit">
       <div className={bemBlocks.item("poster")}>
-        {/* <img alt="presentation" data-qa="poster" src={result._source.poster}/> */}
+        <img alt="presentation" data-qa="poster" src={url}/>
       </div>
       <div className={bemBlocks.item("details")}>
         <a href={url} target="_blank"><h2 className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.title}}></h2></a>
         <h3 className={bemBlocks.item("subtitle")}>Released in {source.year}, rated {source.imdbRating}/10</h3>
         <div className={bemBlocks.item("text")} dangerouslySetInnerHTML={{__html:source.plot}}></div>
+        <div className="mt-3 text-left footer">
+          <a target="_blank" className="btn btn-outline-danger btn-sm" href="https://t.me/Ripple">Join to <i className="fa fa-telegram"></i></a>
+        </div>
       </div>
     </div>
   )
@@ -64,8 +67,9 @@ export default class Homepage extends React.Component {
       <SearchkitProvider searchkit={searchkit}>
         <Layout>
           <TopBar>
-            <div className="my-logo">Searchkit Acme co</div>
-            <SearchBox autofocus={true} searchOnChange={true} prefixQueryFields={["actors^1","type^2","languages","title^10"]}/>
+            <div className="my-logo">Search Telegram</div>
+            <SearchBox autofocus={true} searchOnChange={true} />
+            <div className="option"></div>
           </TopBar>
 
         <LayoutBody>
