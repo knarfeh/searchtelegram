@@ -11,6 +11,8 @@ import { SearchkitManager,SearchkitProvider,
   Layout, TopBar, LayoutBody, LayoutResults,
   ActionBar, ActionBarRow, SideBar, TagFilterConfig} from 'searchkit'
 
+import '../../../node_modules/font-awesome/css/font-awesome.min.css';
+
 const host = "http://localhost:9200/telegram"
 const searchkit = new SearchkitManager(host)
 
@@ -38,11 +40,12 @@ const MovieHitsListItem = (props)=> {
         <img alt="presentation" data-qa="poster" src={url}/>
       </div>
       <div className={bemBlocks.item("details")}>
-        <a href={url} target="_blank"><h2 className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.title}}></h2></a>
-        <h3 className={bemBlocks.item("subtitle")}>Released in {source.year}, rated {source.imdbRating}/10</h3>
+        <a href={url} target="_blank"><h2 className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.name}}></h2></a>
         <div className={bemBlocks.item("text")} dangerouslySetInnerHTML={{__html:source.plot}}></div>
         <div className="mt-3 text-left footer">
-          <a target="_blank" className="btn btn-outline-danger btn-sm" href="https://t.me/Ripple">Join to <i className="fa fa-telegram"></i></a>
+          <a target="_blank" className="btn btn-outline-danger btn-sm" href="https://t.me/Ripple">
+            <i className="fa fa-telegram fa-3x"></i>
+          </a>
         </div>
       </div>
     </div>
