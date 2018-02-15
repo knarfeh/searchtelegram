@@ -1,5 +1,5 @@
-hash: d8c71a8f2034d9f98aa06b119dfbd4dadb912a2268b2795803af931feac3a16c
-updated: 2018-01-24T21:15:37.513861093+08:00
+hash: af12e14bac11864f7fedffc832903ef50fc1b1b8015ec652a901ceecb03c3fcd
+updated: 2018-02-15T18:34:57.400441551+08:00
 imports:
 - name: github.com/codegangsta/cli
   version: 75104e932ac2ddb944a6ea19d9f9f26316ff1145
@@ -33,6 +33,8 @@ imports:
   - currency
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
+- name: github.com/go-redis/redis
+  version: 8b4fa6d443e35ca8b1c37be877285252430b06a3
 - name: github.com/itsjamie/go-bindata-templates
   version: 78f87e838df0fb89dbcd26e1489f988cd7bc3bb8
 - name: github.com/jteeuwen/go-bindata
@@ -76,7 +78,7 @@ imports:
 - name: github.com/valyala/fasttemplate
   version: dcecefd839c4193db0d35b88ec65b4c12d360ab0
 - name: golang.org/x/crypto
-  version: a6600008915114d9c087fad9f03d75087b1a74df
+  version: 122d919ec1efcfb58483215da23f815853e24b81
   subpackages:
   - acme
   - acme/autocert
@@ -98,7 +100,7 @@ imports:
 - name: gopkg.in/go-playground/assert.v1
   version: 4f4dfbc7d1c48336cf93399deae81aa9067e88af
 - name: gopkg.in/go-playground/validator.v9
-  version: 48a433ba4bcadc5be9aa16d4bdcb383d3f57a741
+  version: 3620d3c0694119b61c72071ff5a05a976e97b05a
 - name: gopkg.in/olivere/elastic.v5
   version: 1094ee281ca61a783c9ba22bf86e7e0a8aa2d112
   subpackages:

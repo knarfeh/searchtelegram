@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/codegangsta/cli"
@@ -16,13 +17,18 @@ func main() {
 func Run(args []string) {
 	app := cli.NewApp()
 	app.Name = "app"
-	app.Usage = "React server application"
+	app.Usage = "Search telegram"
 
 	app.Commands = []cli.Command{
 		{
 			Name:   "run",
 			Usage:  "Runs server",
 			Action: RunServer,
+		},
+		{
+			Name:   "worker",
+			Usage:  "Runs worker",
+			Action: RunWorker,
 		},
 	}
 	app.Run(args)
@@ -35,4 +41,9 @@ func RunServer(c *cli.Context) {
 	// see server/app.go:150
 	})
 	app.Run()
+}
+
+// RunWorker runs worker
+func RunWorker(c *cli.Context) {
+	fmt.Println("test")
 }

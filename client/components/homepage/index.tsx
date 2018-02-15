@@ -32,18 +32,19 @@ const MovieHitsGridItem = (props)=> {
 
 const MovieHitsListItem = (props)=> {
   const {bemBlocks, result} = props
-  let url = "https://cdn5.telesco.pe/file/qyqzjBHidDTCg5MWywQn5hHdpZkZvDRZnD9578Up785eEO2AXtzkPOFgHd0AK5TFgoNwaaJdv8lxQwfF-GsxrjaUpS_kdIOQtCVLD7QEllGg3d-PZ466DWzUHI8dgEyeXJgpCtOKMd0OnA4Ziyv1-ZulKozHv9t9OUgx0GKbZ7gac3-xTYx9S9y5k90XDh4N4dJmALLQaoLgBUDbDENeKAPOsSk0wnVdWHkG879wd2MRnQouYdnXldv2lIdXcQOdYj9J66uuRSx_X27O2Go3QjTYeP7pMtUz7BUCyos3YOOQOqB_xl_y7I4w84C3MHjv360Om5uFBT9mtyJL8iyR7A.jpg"
+  let photoUrl = "https://cdn5.telesco.pe/file/qyqzjBHidDTCg5MWywQn5hHdpZkZvDRZnD9578Up785eEO2AXtzkPOFgHd0AK5TFgoNwaaJdv8lxQwfF-GsxrjaUpS_kdIOQtCVLD7QEllGg3d-PZ466DWzUHI8dgEyeXJgpCtOKMd0OnA4Ziyv1-ZulKozHv9t9OUgx0GKbZ7gac3-xTYx9S9y5k90XDh4N4dJmALLQaoLgBUDbDENeKAPOsSk0wnVdWHkG879wd2MRnQouYdnXldv2lIdXcQOdYj9J66uuRSx_X27O2Go3QjTYeP7pMtUz7BUCyos3YOOQOqB_xl_y7I4w84C3MHjv360Om5uFBT9mtyJL8iyR7A.jpg"
+  let tDotMe = "https://t.me/" + result._source.name
   const source = lodash.extend({}, result._source, result.highlight)
   return (
     <div className={bemBlocks.item().mix(bemBlocks.container("item"))} data-qa="hit">
       <div className={bemBlocks.item("poster")}>
-        <img alt="presentation" data-qa="poster" src={url}/>
+        <img alt="presentation" data-qa="poster" src={photoUrl}/>
       </div>
       <div className={bemBlocks.item("details")}>
-        <a href={url} target="_blank"><h2 className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.name}}></h2></a>
-        <div className={bemBlocks.item("text")} dangerouslySetInnerHTML={{__html:source.plot}}></div>
-        <div className="mt-3 text-left footer">
-          <a target="_blank" className="btn btn-outline-danger btn-sm" href="https://t.me/Ripple">
+        <h2 className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.name}}></h2>
+        <h3 className={bemBlocks.item("subtitle")}>Tags: "test"</h3>
+        <div className="TODO">
+          <a target="_blank" className="btn btn-outline-danger btn-sm" href={tDotMe}>
             <i className="fa fa-telegram fa-3x"></i>
           </a>
         </div>
@@ -88,11 +89,6 @@ export default class Homepage extends React.Component {
                   "hitstats.results_found":"{hitCount} results found"
                 }}/>
                 <ViewSwitcherToggle/>
-                <SortingSelector options={[
-                  {label:"Relevance", field:"_score", order:"desc"},
-                  {label:"Latest Releases", field:"released", order:"desc"},
-                  {label:"Earliest Releases", field:"released", order:"asc"}
-                ]}/>
               </ActionBarRow>
 
               <ActionBarRow>
@@ -105,8 +101,8 @@ export default class Homepage extends React.Component {
                 hitsPerPage={12} highlightFields={["name","info"]}
                 sourceFilter={["name", "info", "desc", "type", "tags"]}
                 hitComponents={[
-                  {key:"grid", title:"Grid", itemComponent:MovieHitsGridItem, defaultOption:true},
-                  {key:"list", title:"List", itemComponent:MovieHitsListItem}
+                  {key:"grid", title:"Grid", itemComponent:MovieHitsGridItem},
+                  {key:"list", title:"List", itemComponent:MovieHitsListItem, defaultOption:true}
                 ]}
                 scrollTo="body"
             />

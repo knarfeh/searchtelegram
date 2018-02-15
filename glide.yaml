@@ -28,3 +28,5 @@ import:
   version: ~1.2.1
 - package: github.com/dgrijalva/jwt-go
   version: ~3.1.0
+- package: github.com/go-redis/redis
+  version: ~6.8.3

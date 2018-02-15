@@ -28,7 +28,6 @@ const (
 var supportedCiphers = []string{
 	"aes128-ctr", "aes192-ctr", "aes256-ctr",
 	"aes128-gcm@openssh.com",
-	chacha20Poly1305ID,
 	"arcfour256", "arcfour128",
 }
 
@@ -243,7 +242,7 @@ func (c *Config) SetDefaults() {
 
 // buildDataSignedForAuth returns the data that is signed in order to prove
 // possession of a private key. See RFC 4252, section 7.
-func buildDataSignedForAuth(sessionID []byte, req userAuthRequestMsg, algo, pubKey []byte) []byte {
+func buildDataSignedForAuth(sessionId []byte, req userAuthRequestMsg, algo, pubKey []byte) []byte {
 	data := struct {
 		Session []byte
 		Type    byte
@@ -254,7 +253,7 @@ func buildDataSignedForAuth(sessionID []byte, req userAuthRequestMsg, algo, pubK
 		Algo    []byte
 		PubKey  []byte
 	}{
-		sessionID,
+		sessionId,
 		msgUserAuthRequest,
 		req.User,
 		req.Service,
