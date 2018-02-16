@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
+	"github.com/olebedev/config"
 )
 
 func main() {
@@ -45,5 +46,12 @@ func RunServer(c *cli.Context) {
 
 // RunWorker runs worker
 func RunWorker(c *cli.Context) {
-	fmt.Println("test")
+	conf, err := config.ParseYaml(confString)
+	Must(err)
+	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
+	REDISHOST, _ := conf.String("REDISHOST")
+	REDISPORT, _ := conf.String("REDISPORT")
+	fmt.Printf("WTF is host??? %s, %s", REDISHOST, REDISPORT)
+	hauler, _ := CreateConsumer(ESHOSTPORT, REDISHOST+":"+REDISPORT)
+	hauler.Query2ES()
 }

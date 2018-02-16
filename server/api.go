@@ -145,6 +145,11 @@ func (api *API) CreateTgResource(c echo.Context) error {
 	// TODO: get type from telegram api
 	// TODO: Must add people, channel, group or bot tag
 	_, err := app.ESClient.Client.Index().OpType("create").Index("telegram").Type("resource").Id(tgResource.Name).BodyJson(tgResource).Do(context.TODO())
+	tgResouceString, _ := json.Marshal(tgResource)
+	err = app.RedisClient.Client.Publish("searchtelegram", string(tgResouceString)).Err()
+	if err != nil {
+		panic(err)
+	}
 	if err != nil {
 		// Please make sure domain not exist
 		e, _ := err.(*elastic.Error)

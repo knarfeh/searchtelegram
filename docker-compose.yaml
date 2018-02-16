@@ -7,6 +7,7 @@ services:
       dockerfile: ./.docker/.dev.dockerfile
     volumes:
       - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
+      - ./container-data/nginx/static/images:/media/images
     ports:
       - "15000:5000"
       - "18080:80"

@@ -1,36 +1,20 @@
-hash: af12e14bac11864f7fedffc832903ef50fc1b1b8015ec652a901ceecb03c3fcd
-updated: 2018-02-15T18:34:57.400441551+08:00
+hash: 04b0af7562cb9f9e16e450ad22b1555376d17115eae5897a09192d8426758633
+updated: 2018-02-16T22:28:18.620509921+08:00
 imports:
 - name: github.com/codegangsta/cli
   version: 75104e932ac2ddb944a6ea19d9f9f26316ff1145
 - name: github.com/dgrijalva/jwt-go
   version: dbeaa9332f19a944acb5736b4456cfcc02140e29
-- name: github.com/dlclark/regexp2
-  version: 7632a260cbaf5e7594fc1544a503456ecd0827f1
-  subpackages:
-  - syntax
 - name: github.com/dop251/goja
   version: eab79f83e840f5294250a3988a8037c476c9cdae
-  subpackages:
-  - ast
-  - file
-  - parser
-  - token
 - name: github.com/dop251/goja_nodejs
   version: adff31b136e6b7e044712aab7236a775e1bd085e
   subpackages:
-  - console
   - eventloop
-  - require
-  - util
 - name: github.com/elazarl/go-bindata-assetfs
   version: 30f82fa23fd844bd5bb1e5f216db87fd77b5eb43
 - name: github.com/fatih/structs
   version: 253b866009f3c281655a29eb8a31bcd759a0dbdb
-- name: github.com/go-playground/locales
-  version: e4cbcb5d0652150d40ad0646651076b6bd2be4f6
-  subpackages:
-  - currency
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-redis/redis
@@ -43,23 +27,8 @@ imports:
   version: b6040409eeceaac178c95fe73498b5f992e6b668
   subpackages:
   - middleware
-- name: github.com/labstack/gommon
-  version: 57409ada9da0f2afad6664c49502f8c50fbd8476
-  subpackages:
-  - bytes
-  - color
-  - log
-  - random
 - name: github.com/mailru/easyjson
   version: 32fa128f234d041f196a9f3e0fea5ac9772c08e1
-  subpackages:
-  - buffer
-  - jlexer
-  - jwriter
-- name: github.com/mattn/go-colorable
-  version: 6cc8b475d4682021d75d2cbe2bc481bec4ce98e5
-- name: github.com/mattn/go-isatty
-  version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
 - name: github.com/olebedev/config
@@ -68,44 +37,16 @@ imports:
   version: bb153be84336f26925890502929cc363477df7ad
   subpackages:
   - fetch
-  - fetch/internal/data
 - name: github.com/olebedev/on
   version: f65b7c9823a4c30797e9ad3c51d559a36ff8d542
-- name: github.com/pkg/errors
-  version: e881fd58d78e04cf6d0de1217f8707c8cc2249bc
-- name: github.com/valyala/bytebufferpool
-  version: e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7
-- name: github.com/valyala/fasttemplate
-  version: dcecefd839c4193db0d35b88ec65b4c12d360ab0
-- name: golang.org/x/crypto
-  version: 122d919ec1efcfb58483215da23f815853e24b81
-  subpackages:
-  - acme
-  - acme/autocert
-- name: golang.org/x/sys
-  version: 2c42eef0765b9837fbdab12011af7830f55f88f0
-  subpackages:
-  - unix
-- name: golang.org/x/text
-  version: e19ae1496984b1c655b8044a65c0300a3c878dd3
-  subpackages:
-  - cases
-  - collate
-  - internal
-  - internal/colltab
-  - internal/tag
-  - language
-  - transform
-  - unicode/norm
+- name: github.com/PuerkitoBio/goquery
+  version: 09540e565986583836b5fc792fe951ec5fd201dd
+- name: github.com/technoweenie/multipartstreamer
+  version: a90a01d73ae432e2611d178c18367fbaa13e0154
 - name: gopkg.in/go-playground/assert.v1
   version: 4f4dfbc7d1c48336cf93399deae81aa9067e88af
 - name: gopkg.in/go-playground/validator.v9
   version: 3620d3c0694119b61c72071ff5a05a976e97b05a
 - name: gopkg.in/olivere/elastic.v5
   version: 1094ee281ca61a783c9ba22bf86e7e0a8aa2d112
-  subpackages:
-  - config
-  - uritemplates
-- name: gopkg.in/yaml.v2
-  version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports: []
