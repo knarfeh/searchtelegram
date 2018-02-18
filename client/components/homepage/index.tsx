@@ -33,7 +33,7 @@ const MovieHitsGridItem = (props)=> {
 const MovieHitsListItem = (props)=> {
   const {bemBlocks, result} = props
   // let photoUrl = "https://cdn5.telesco.pe/file/JMPBFOKtg7SARQveUVzY0sXSqk7pUF7Nc5sbHFNvviSWJy-LFjEigg9V7gC_xc-tW_XJnhOX7Rlkkeb3ZZ5nq1Nf_dMbOmTzxgtn44sF4LSlPU2pv5XfQxlfLSVAQOdaVziBdgHER7-SvNqpRMznVaAjZbq75X-PKS8nFFH2Vt30qiBnrQDEz6nXnunQVa5Jgzjizrh8lcCNvCQLIGArl66X10HOI2CvjKynhNenNcsOBW2BICJ1VYjtUDAoN5KZwePAekNhN8APpksDmfUvH-kCmzyzz1lUUyCMSRcYzs4xgKQSjC_7t6kTuT_O_3EnbChOkQq6h9opXo0PHyP4aw.jpg"
-  let photoUrl = "http://192.168.199.121:18080/images/" + result._source.name + ".jpg"
+  let photoUrl = "http://localhost:18080/images/" + result._source.name + ".jpg"
   let tDotMe = "https://t.me/" + result._source.name
   var sectionStyle = {
     width: "100%",
