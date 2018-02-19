@@ -33,8 +33,9 @@ const MovieHitsGridItem = (props)=> {
 const MovieHitsListItem = (props)=> {
   const {bemBlocks, result} = props
   // let photoUrl = "https://cdn5.telesco.pe/file/JMPBFOKtg7SARQveUVzY0sXSqk7pUF7Nc5sbHFNvviSWJy-LFjEigg9V7gC_xc-tW_XJnhOX7Rlkkeb3ZZ5nq1Nf_dMbOmTzxgtn44sF4LSlPU2pv5XfQxlfLSVAQOdaVziBdgHER7-SvNqpRMznVaAjZbq75X-PKS8nFFH2Vt30qiBnrQDEz6nXnunQVa5Jgzjizrh8lcCNvCQLIGArl66X10HOI2CvjKynhNenNcsOBW2BICJ1VYjtUDAoN5KZwePAekNhN8APpksDmfUvH-kCmzyzz1lUUyCMSRcYzs4xgKQSjC_7t6kTuT_O_3EnbChOkQq6h9opXo0PHyP4aw.jpg"
-  let photoUrl = "http://localhost:18080/images/" + result._source.name + ".jpg"
-  let tDotMe = "https://t.me/" + result._source.name
+  // let photoUrl = "http://localhost:18080/images/" + result._source.tgid+ ".jpg"
+  let photoUrl = "http://localhost:18080/images/" + "knarfeh" + ".jpg"
+  let tDotMe = "https://t.me/" + result._source.tgid
   var sectionStyle = {
     width: "100%",
     height: "122px",
@@ -46,7 +47,8 @@ const MovieHitsListItem = (props)=> {
         <img alt="presentation" data-qa="poster" style={sectionStyle} src={photoUrl}/>
       </div>
       <div className={bemBlocks.item("details")}>
-        <h2 className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.name}}></h2>
+        <h2 className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.title? source.title: source.tgid}}></h2>
+        <h3 className={bemBlocks.item("subtitle")}>@{source.tgid}</h3>
         <h3 className={bemBlocks.item("subtitle")}>Tags: "test"</h3>
         <div className="TODO">
           <a target="_blank" className="btn btn-outline-danger btn-sm" href={tDotMe}>
@@ -58,7 +60,20 @@ const MovieHitsListItem = (props)=> {
   )
 }
 
-export default class Homepage extends React.Component {
+export class Popup extends React.Component<{ text:string, closePopup:any }, { }> {
+  render() {
+    return (
+      <div className='popup'>
+        <div className='popup_inner'>
+          <h1>{this.props.text}</h1>
+        <button onClick={this.props.closePopup}>close me</button>
+        </div>
+      </div>
+    );
+  }
+}
+
+export default class Homepage extends React.Component<{}, { showPopup: any }> {
   /*eslint-disable */
   static onEnter({store, nextState, replaceState, callback}) {
     // Load here any data.
@@ -69,16 +84,30 @@ export default class Homepage extends React.Component {
     super(props);
     console.log(window.location);
     console.log('constructor');
+    this.state = {
+      showPopup: false
+    };
+  }
+  togglePopup() {
+    this.setState({
+      showPopup: !this.state.showPopup
+    });
+    console.log('showpopup???', this.state.showPopup)
   }
 
   render() {
     return (
+
+      <div className="app">
+        {this.state.showPopup ? <Popup text='Close Me' closePopup={this.togglePopup.bind(this)}/> : null}
       <SearchkitProvider searchkit={searchkit}>
         <Layout>
           <TopBar>
-            <div className="my-logo">Search Telegram</div>
+            <div className="st-logo">Search Telegram</div>
             <SearchBox autofocus={true} searchOnChange={true} />
-            <div className="option"></div>
+            <div className="option">
+              <button className="btn btn-sm btn-default" onClick={this.togglePopup.bind(this)}>show popup</button>
+            </div>
           </TopBar>
 
         <LayoutBody>
@@ -103,8 +132,8 @@ export default class Homepage extends React.Component {
 
             </ActionBar>
             <ViewSwitcherHits
-                hitsPerPage={12} highlightFields={["name","info"]}
-                sourceFilter={["name", "info", "desc", "type", "tags"]}
+                hitsPerPage={12} highlightFields={["tgid", "title", "info"]}
+                sourceFilter={["tgid", "title", "info", "desc", "type", "tags"]}
                 hitComponents={[
                   {key:"grid", title:"Grid", itemComponent:MovieHitsGridItem},
                   {key:"list", title:"List", itemComponent:MovieHitsListItem, defaultOption:true}
@@ -118,7 +147,10 @@ export default class Homepage extends React.Component {
           </LayoutBody>
         </Layout>
       </SearchkitProvider>
+      </div>
     );
   }
-
 }
+
+
+

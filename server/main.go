@@ -52,6 +52,6 @@ func RunWorker(c *cli.Context) {
 	REDISHOST, _ := conf.String("REDISHOST")
 	REDISPORT, _ := conf.String("REDISPORT")
 	fmt.Printf("WTF is host??? %s, %s", REDISHOST, REDISPORT)
-	hauler, _ := CreateConsumer(ESHOSTPORT, REDISHOST+":"+REDISPORT)
+	hauler, _ := CreateConsumer(ESHOSTPORT, REDISHOST, REDISPORT)
 	hauler.Query2ES()
 }

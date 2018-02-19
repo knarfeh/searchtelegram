@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,13 +14,13 @@ import (
 
 	"github.com/knarfeh/searchtelegram/server/domain"
 
-	redis "github.com/go-redis/redis"
-	// elastic "gopkg.in/olivere/elastic.v5"
+	elastic "gopkg.in/olivere/elastic.v5"
 )
 
+// Hauler ...
 type Hauler struct {
-	// esClient    *elastic.Client
-	redisClient *redis.Client
+	esClient    *ESClient
+	redisClient *RedisClient
 }
 
 type tgMeInfo struct {
@@ -29,15 +30,11 @@ type tgMeInfo struct {
 }
 
 // CreateConsumer create consumer ...
-func CreateConsumer(esURL, redisHost string) (*Hauler, error) {
-	// es, _ := NewESClient(esURL, "", password string, retries int)
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     redisHost,
-		Password: "",
-		DB:       0,
-	})
+func CreateConsumer(esURL, redisHost, redisPort string) (*Hauler, error) {
+	es, _ := NewESClient(esURL, "", "", 3)
+	redisClient := NewRedisClient(redisHost, redisPort)
 	return &Hauler{
-		// esClient:    esClient,
+		esClient:    es,
 		redisClient: redisClient,
 	}, nil
 }
@@ -45,7 +42,7 @@ func CreateConsumer(esURL, redisHost string) (*Hauler, error) {
 // Query2ES subscribe redis channel, get data from t.me, save it to es
 // func
 func (hauler *Hauler) Query2ES() {
-	pubsub := hauler.redisClient.Subscribe("searchtelegram")
+	pubsub := hauler.redisClient.Client.Subscribe("searchtelegram")
 	defer pubsub.Close()
 
 	substr, err := pubsub.ReceiveTimeout(time.Second)
@@ -72,15 +69,32 @@ func (hauler *Hauler) handleQuery(query string) {
 
 	fmt.Println(tgResource)
 	tgInfo := hauler.getData(tgResource.TgID)
+	fmt.Println("TODO, handle 404")
 	fmt.Println("tgInfo????")
 	fmt.Println(tgInfo)
 	// TODO write to es
 	tgResource.Title = tgInfo.Title
-	tgResource.Type = "TODO"
-	tgResource.Desc = tgInfo.Description
+	tgResource.Type = "TODO, add tags!!!"
 	tgResource.Imgsrc = tgInfo.ImgSrc
-	fmt.Println("tgResource???")
-	fmt.Println(tgResource)
+	if tgResource.Desc == "" {
+		fmt.Println("tgResource.Desc is nil")
+		tgResource.Desc = tgInfo.Description
+	}
+	_, err := hauler.esClient.Client.Index().OpType("create").Index("telegram").Type("resource").Id(tgResource.TgID).BodyJson(tgResource).Do(context.TODO())
+
+	if err != nil {
+		// Please make sure domain not exist
+		e, _ := err.(*elastic.Error)
+		if e.Status == 409 {
+			errorItem := make(map[string]string)
+			errorItem["code"] = "resource_already_exist"
+			errorItem["message"] = e.Details.Reason
+			errorItem["source"] = "10001"
+			panic(e)
+		}
+		// Should not happen...
+		panic(err)
+	}
 }
 
 // getData
@@ -92,7 +106,6 @@ func (hauler *Hauler) getData(tgID string) *tgMeInfo {
 	title := strings.TrimSpace(doc.Find(".tgme_page_title").Text())
 	description := strings.TrimSpace(doc.Find(".tgme_page_description").Text())
 	imgSrc, _ := doc.Find(".tgme_page_photo_image").Attr("src")
-	fmt.Printf("\n title: %s \n description: %s \n src: %s \n", title, description, imgSrc)
 	// TODO get type from button
 
 	// don't worry about errors
@@ -103,7 +116,7 @@ func (hauler *Hauler) getData(tgID string) *tgMeInfo {
 
 	defer response.Body.Close()
 
-	//open a file for writing
+	// open a file for writing
 	file, err := os.Create("/media/images/" + tgID + ".jpg")
 	if err != nil {
 		fmt.Print(err)
@@ -120,5 +133,6 @@ func (hauler *Hauler) getData(tgID string) *tgMeInfo {
 		Title:       title,
 		Description: description,
 		ImgSrc:      "/media/images/" + tgID + ".jpg",
+		// Type
 	}
 }
