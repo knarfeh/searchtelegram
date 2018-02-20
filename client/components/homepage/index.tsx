@@ -10,13 +10,16 @@ import { SearchkitManager,SearchkitProvider,
   InputFilter, GroupedSelectedFilters,
   Layout, TopBar, LayoutBody, LayoutResults,
   ActionBar, ActionBarRow, SideBar, TagFilterConfig} from 'searchkit'
+// import { Popup } from '../popup';
+import { Button, Alert, Spinner, Modal, ModalHeader,
+  ModalFooter, ModalBody, Form, FormField, FormInput, Checkbox } from 'elemental';
 
 import '../../../node_modules/font-awesome/css/font-awesome.min.css';
 
 const host = "http://localhost:9200/telegram"
 const searchkit = new SearchkitManager(host)
 
-const MovieHitsGridItem = (props)=> {
+const HitsGridItem = (props)=> {
   const {bemBlocks, result} = props
   let url = "https://cdn5.telesco.pe/file/qyqzjBHidDTCg5MWywQn5hHdpZkZvDRZnD9578Up785eEO2AXtzkPOFgHd0AK5TFgoNwaaJdv8lxQwfF-GsxrjaUpS_kdIOQtCVLD7QEllGg3d-PZ466DWzUHI8dgEyeXJgpCtOKMd0OnA4Ziyv1-ZulKozHv9t9OUgx0GKbZ7gac3-xTYx9S9y5k90XDh4N4dJmALLQaoLgBUDbDENeKAPOsSk0wnVdWHkG879wd2MRnQouYdnXldv2lIdXcQOdYj9J66uuRSx_X27O2Go3QjTYeP7pMtUz7BUCyos3YOOQOqB_xl_y7I4w84C3MHjv360Om5uFBT9mtyJL8iyR7A.jpg"
   const source = lodash.extend({}, result._source, result.highlight)
@@ -30,7 +33,7 @@ const MovieHitsGridItem = (props)=> {
   )
 }
 
-const MovieHitsListItem = (props)=> {
+const HitsListItem = (props)=> {
   const {bemBlocks, result} = props
   // let photoUrl = "https://cdn5.telesco.pe/file/JMPBFOKtg7SARQveUVzY0sXSqk7pUF7Nc5sbHFNvviSWJy-LFjEigg9V7gC_xc-tW_XJnhOX7Rlkkeb3ZZ5nq1Nf_dMbOmTzxgtn44sF4LSlPU2pv5XfQxlfLSVAQOdaVziBdgHER7-SvNqpRMznVaAjZbq75X-PKS8nFFH2Vt30qiBnrQDEz6nXnunQVa5Jgzjizrh8lcCNvCQLIGArl66X10HOI2CvjKynhNenNcsOBW2BICJ1VYjtUDAoN5KZwePAekNhN8APpksDmfUvH-kCmzyzz1lUUyCMSRcYzs4xgKQSjC_7t6kTuT_O_3EnbChOkQq6h9opXo0PHyP4aw.jpg"
   // let photoUrl = "http://localhost:18080/images/" + result._source.tgid+ ".jpg"
@@ -60,19 +63,6 @@ const MovieHitsListItem = (props)=> {
   )
 }
 
-export class Popup extends React.Component<{ text:string, closePopup:any }, { }> {
-  render() {
-    return (
-      <div className='popup'>
-        <div className='popup_inner'>
-          <h1>{this.props.text}</h1>
-        <button onClick={this.props.closePopup}>close me</button>
-        </div>
-      </div>
-    );
-  }
-}
-
 export default class Homepage extends React.Component<{}, { showPopup: any }> {
   /*eslint-disable */
   static onEnter({store, nextState, replaceState, callback}) {
@@ -87,6 +77,7 @@ export default class Homepage extends React.Component<{}, { showPopup: any }> {
     this.state = {
       showPopup: false
     };
+    this.togglePopup = this.togglePopup.bind(this);
   }
   togglePopup() {
     this.setState({
@@ -96,17 +87,41 @@ export default class Homepage extends React.Component<{}, { showPopup: any }> {
   }
 
   render() {
+    var formInputStyle = {
+      "padding-right": 0
+    }
     return (
 
       <div className="app">
-        {this.state.showPopup ? <Popup text='Close Me' closePopup={this.togglePopup.bind(this)}/> : null}
+        {/* {this.state.showPopup ? <Popup closePopup={this.togglePopup.bind(this)}/> : null} */}
       <SearchkitProvider searchkit={searchkit}>
         <Layout>
           <TopBar>
             <div className="st-logo">Search Telegram</div>
             <SearchBox autofocus={true} searchOnChange={true} />
             <div className="option">
-              <button className="btn btn-sm btn-default" onClick={this.togglePopup.bind(this)}>show popup</button>
+              {/* <button className="btn btn-sm btn-default" onClick={this.togglePopup.bind(this)}>show popup</button> */}
+              <Modal isOpen={this.state.showPopup} onCancel={this.togglePopup} backdropClosesModal>
+                <ModalHeader text="Submit people/group/channel" showCloseButton onClose={this.togglePopup} />
+                <ModalBody>
+                  <Form>
+                    <FormField label="Email address">
+                      <FormInput autoFocus placeholder="Telegram ID" name="basic-form-input-email" style={formInputStyle} />
+                    </FormField>
+                    <FormField label="Password">
+                      <FormInput placeholder="Password" name="basic-form-input-password" style={formInputStyle} />
+                    </FormField>
+                    <FormField>
+                      <Checkbox label="Check it" />
+                    </FormField>
+                    <Button submit>Submit</Button>
+                  </Form>
+                </ModalBody>
+                <ModalFooter>
+                  <Button type="primary" onClick={this.togglePopup}>Close</Button>
+                </ModalFooter>
+              </Modal>
+              <Button type="primary" onClick={this.togglePopup}>Submit New</Button>
             </div>
           </TopBar>
 
@@ -135,8 +150,8 @@ export default class Homepage extends React.Component<{}, { showPopup: any }> {
                 hitsPerPage={12} highlightFields={["tgid", "title", "info"]}
                 sourceFilter={["tgid", "title", "info", "desc", "type", "tags"]}
                 hitComponents={[
-                  {key:"grid", title:"Grid", itemComponent:MovieHitsGridItem},
-                  {key:"list", title:"List", itemComponent:MovieHitsListItem, defaultOption:true}
+                  {key:"grid", title:"Grid", itemComponent: HitsGridItem},
+                  {key:"list", title:"List", itemComponent: HitsListItem, defaultOption:true}
                 ]}
                 scrollTo="body"
             />
