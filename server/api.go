@@ -135,6 +135,7 @@ func (api *API) GetTgResource(c echo.Context) error {
 func (api *API) CreateTgResource(c echo.Context) error {
 	app := c.Get("app").(*App)
 	tgResource := domain.NewTgResource()
+	fmt.Println("Create tg resource with: ", *tgResource)
 	if err := c.Bind(tgResource); err != nil {
 		return err
 	}
@@ -145,12 +146,12 @@ func (api *API) CreateTgResource(c echo.Context) error {
 	// TODO: get type from telegram api
 	// TODO: Must add people, channel, group or bot tag
 	tgResouceString, _ := json.Marshal(tgResource)
+	app.Engine.Logger.Infof("Create tg resource: %s", tgResouceString)
 	err := app.RedisClient.Client.Publish("searchtelegram", string(tgResouceString)).Err()
 	if err != nil {
 		panic(err)
 	}
 
-	// TODO, response
 	return c.JSON(http.StatusOK, OKResponse)
 }
 

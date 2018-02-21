@@ -12,12 +12,12 @@ type Tag struct {
 
 // TgResource ...
 type TgResource struct {
-	TgID   string `json:"tgid" validate:"required"`
-	Title  string `json:"title"`
-	Info   string `json:"info"`
+	TgID  string `json:"tgid" validate:"required"`
+	Title string `json:"title"`
+	// Info   string `json:"info"`
 	Desc   string `json:"desc"`
-	Type   string `json:"type" validate:"required"`
 	Tags   []Tag  `json:"tags" validate:"dive"`
+	Type   string `json:"type"`
 	Imgsrc string `json:"imgsrc"`
 }
 

@@ -90,10 +90,10 @@ func (hauler *Hauler) handleQuery(query string) {
 			errorItem["code"] = "resource_already_exist"
 			errorItem["message"] = e.Details.Reason
 			errorItem["source"] = "10001"
-			panic(e)
+			fmt.Println("Dont panic, error: ", errorItem)
 		}
 		// Should not happen...
-		panic(err)
+		// panic(err)
 	}
 }
 
@@ -117,7 +117,7 @@ func (hauler *Hauler) getData(tgID string) *tgMeInfo {
 	defer response.Body.Close()
 
 	// open a file for writing
-	file, err := os.Create("/media/images/" + tgID + ".jpg")
+	file, err := os.Create("/tmp/images/" + tgID + ".jpg")
 	if err != nil {
 		fmt.Print(err)
 	}
