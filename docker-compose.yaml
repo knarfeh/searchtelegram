@@ -7,7 +7,10 @@ services:
       dockerfile: ./.docker/.dev.dockerfile
     volumes:
       - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
-      - ./container-data/nginx/static/images:/media/images
+      # - ./container-data/nginx/static/images:/media/images
+      - /tmp/images:/media/images
+      - ./server:/go/src/github.com/knarfeh/searchtelegram/server
+      - ./client:/go/src/github.com/knarfeh/searchtelegram/client
     ports:
       - "15000:5000"
       - "18080:80"

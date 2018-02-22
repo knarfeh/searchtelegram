@@ -1,5 +1,13 @@
 /* @import url('../../../node_modules/searchkit/release/theme.css'); */
 
+.is-invalid {
+  color: #d64242;
+}
+
+.sk-toggle-option {
+  display:none;
+}
+
 .st-logo {
   color:white;
   flex:0 0 250px;

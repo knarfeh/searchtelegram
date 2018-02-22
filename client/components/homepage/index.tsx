@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as lodash from 'lodash';
 import Helmet from 'react-helmet';
 import * as _ from 'lodash';
-
 import {
   SearchkitManager,SearchkitProvider,
   SearchBox, RefinementListFilter, Pagination,
@@ -12,38 +11,25 @@ import {
   InputFilter, GroupedSelectedFilters,
   Layout, TopBar, LayoutBody, LayoutResults,
   ActionBar, ActionBarRow, SideBar, TagFilterConfig} from 'searchkit'
-// import { Popup } from '../popup';
 import {
   Button, Alert, Spinner, Modal, ModalHeader,
   ModalFooter, ModalBody, Form, FormField, FormInput,
-  Checkbox, Radio, RadioGroup, Pill
+  Checkbox, Radio, RadioGroup, Pill, EmailInputGroup
 } from 'elemental';
-
 import axios from "axios";
 import { WithContext as ReactTags } from 'react-tag-input';
-
+import { ToastContainer, toast } from 'react-toastify';
 import '../../../node_modules/font-awesome/css/font-awesome.min.css';
 
-const host = "http://localhost:9200/telegram"
+const host = "http://localhost:18080/"
 const searchkit = new SearchkitManager(host)
-
-const HitsGridItem = (props)=> {
-  return (
-    <div>
-      <h1>WIP</h1>
-    </div>
-  )
-}
 
 const HitsListItem = (props)=> {
   const {bemBlocks, result} = props
-  // let photoUrl = "https://cdn5.telesco.pe/file/JMPBFOKtg7SARQveUVzY0sXSqk7pUF7Nc5sbHFNvviSWJy-LFjEigg9V7gC_xc-tW_XJnhOX7Rlkkeb3ZZ5nq1Nf_dMbOmTzxgtn44sF4LSlPU2pv5XfQxlfLSVAQOdaVziBdgHER7-SvNqpRMznVaAjZbq75X-PKS8nFFH2Vt30qiBnrQDEz6nXnunQVa5Jgzjizrh8lcCNvCQLIGArl66X10HOI2CvjKynhNenNcsOBW2BICJ1VYjtUDAoN5KZwePAekNhN8APpksDmfUvH-kCmzyzz1lUUyCMSRcYzs4xgKQSjC_7t6kTuT_O_3EnbChOkQq6h9opXo0PHyP4aw.jpg"
-  // let photoUrl = "http://localhost:18080/images/" + result._source.tgid+ ".jpg"
-  // TODO: get jpg from source
-  let photoUrl = "http://localhost:18080/images/" + "knarfeh" + ".jpg"
   let tDotMe = "https://t.me/" + result._source.tgid
+  let photoUrl = result._source.imgsrc
   var sectionStyle = {
-    width: "100%",
+    width: "122px",
     height: "122px",
   };
   const source = lodash.extend({}, result._source, result.highlight)
@@ -73,12 +59,12 @@ const HitsListItem = (props)=> {
   )
 }
 
- export interface ReactTags {
+export interface ReactTagsItem {
   id: number;
   text: string
 }
 
-export default class Homepage extends React.Component<{}, { showPopup: boolean, tgID: string, type: string, tags: ReactTags, description: string, }> {
+export default class Homepage extends React.Component<{}, { showPopup: boolean, tgID: string, type: string, tags: ReactTags[], description: string, validateTgIDMessage: any}> {
   /*eslint-disable */
   static onEnter({store, nextState, replaceState, callback}) {
     // Load here any data.
@@ -95,15 +81,14 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
       // tags: [{ id: 1, text: "Thailand" }, { id: 2, text: "India" }],
       tags: [],
       description: "",
+      validateTgIDMessage: "",
     };
-
     this.togglePopup = this.togglePopup.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
 
     this.handleDelete = this.handleDelete.bind(this);
     this.handleAddition = this.handleAddition.bind(this);
-    this.handleDrag = this.handleDrag.bind(this);
   }
 
   handleDelete(i) {
@@ -121,17 +106,6 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
     this.setState({tags: tags});
   }
 
-  handleDrag(tag, currPos, newPos) {
-    let tags = this.state.tags;
-
-    // mutate array
-    tags.splice(currPos, 1);
-    tags.splice(newPos, 0, tag);
-
-    // re-render
-    this.setState({ tags: tags });
-  }
-
   togglePopup() {
     this.setState({
       showPopup: !this.state.showPopup
@@ -141,6 +115,18 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
   handleSubmit(event) {
     const self = this;
     event.preventDefault();
+    if(this.state.tgID === "") {
+      this.setState({
+        validateTgIDMessage: (
+          <div className="form-validation is-invalid">
+            Telegram ID is required
+          </div>
+        )
+      })
+      return
+    }
+
+    this.togglePopup()
     const tags = _.map(this.state.tags, (item) => {
       return {
         name: item["text"],
@@ -152,17 +138,12 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
         name: this.state.type,
         count: 1
       })
-    } else {
-      tags.push({
-        name: "unknown",
-        count: 1
-      })
     }
     const postData = {
       tgid: this.state.tgID,
       desc: this.state.description,
       tags: tags,
-      type: this.state.type? this.state.type: "unknown",
+      type: this.state.type,
     }
     axios({
       method: 'post',
@@ -170,13 +151,15 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
       data: postData
     }).then(function (response) {
       // TODO, not user friendly
+      toast("If everything goes well, you will be able to search for it after a while.");
       setTimeout(() => {
-        window.location.href = window.location.href
-      }, 100);
+        searchkit.reloadSearch();
+      }, 5000);
     }) ;
-    // TODO: popup hint, then refresh
-    // add fefault type
-    // handle not exist!!!!
+    // handle not exist
+    // add footer
+    // add detail page
+    // add update page
   }
 
   handleInputChange(event) {
@@ -189,6 +172,11 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
     const target = event.target;
     const value = target.value;
     const name = target.name;
+    if(name === "tgID" && value !== "") {
+      this.setState({
+        validateTgIDMessage: ""
+      })
+    }
     this.setState({
       [name]: value
     });
@@ -201,6 +189,7 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
     const { tags, } = this.state;
     return (
       <div className="app">
+        <ToastContainer />
         <SearchkitProvider searchkit={searchkit}>
           <Layout>
             <TopBar>
@@ -211,10 +200,11 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
                   <ModalHeader text="Submit people/group/channel" showCloseButton onClose={this.togglePopup} />
                   <ModalBody>
                     <Form onSubmit={this.handleSubmit}>
-                      <FormField label="Telegram ID">
+                      <FormField label="Telegram ID, please make sure it exist">
                         <FormInput autoFocus={true} placeholder="Telegram ID" name="tgID" value={this.state.tgID} onChange={this.handleInputChange} style={formInputStyle} />
+                        {this.state.validateTgIDMessage}
                       </FormField>
-                      <FormField label="Type(Optional)">
+                      <FormField label="Type, optional">
                         <RadioGroup onChange={this.handleInputChange} value={this.state.type} name="type" options={[
                           {name: "people", label: "People", value: "people"},
                           {name: "group", label: "Group", value: "group"},
@@ -223,21 +213,19 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
                         ]} inline={true}>
                         </RadioGroup>
                       </FormField>
-                      <FormField label="Tags(Optional)">
-                        {/* <FormInput placeholder="Tags" name="tags" onChange={this.handleInputChange} style={formInputStyle} /> */}
+                      <FormField label="Tags, optional">
                         <div>
                           <ReactTags
                             tags={tags}
                             autofocus={false}
                             handleDelete={this.handleDelete}
-                            handleAddition={this.handleAddition}
-                            handleDrag={this.handleDrag} />
+                            handleAddition={this.handleAddition} />
                         </div>
                       </FormField>
-                      <FormField label="Description(Optionnal)">
+                      <FormField label="Description, optionnal">
                         <FormInput placeholder="Description" name="description" onChange={this.handleInputChange} style={formInputStyle} value={this.state.description} multiline />
                       </FormField>
-                      <Button type="primary" onClick={this.togglePopup} submit>Submit</Button>
+                      <Button type="primary" submit>Submit</Button>
                     </Form>
                   </ModalBody>
                 </Modal>
@@ -251,9 +239,6 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
               <LayoutResults>
                 <ActionBar>
                   <ActionBarRow>
-                    <HitsStats translations={{
-                      "hitstats.results_found":"{hitCount} results found"
-                    }}/>
                     <ViewSwitcherToggle/>
                   </ActionBarRow>
                   <ActionBarRow>
@@ -262,10 +247,9 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
                   </ActionBarRow>
                 </ActionBar>
                 <ViewSwitcherHits
-                    hitsPerPage={12} highlightFields={["tgid", "title", "info"]}
-                    sourceFilter={["tgid", "title", "info", "desc", "type", "tags"]}
+                    hitsPerPage={10} highlightFields={["tgid", "title", "info"]}
+                    sourceFilter={["tgid", "title", "desc", "type", "tags", "imgsrc"]}
                     hitComponents={[
-                      // {key:"grid", title:"Grid", itemComponent: HitsGridItem},
                       {key:"list", title:"List", itemComponent: HitsListItem, defaultOption:true}
                     ]}
                     scrollTo="body"
