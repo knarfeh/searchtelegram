@@ -151,7 +151,7 @@ func (hauler *Hauler) getData(tgID string) (*tgMeInfo, error) {
 	fmt.Printf("Getting data, url: %s", url)
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
-		return nil, errors.New("Got error from tdotme...")
+		return nil, errors.New("got error from tdotme")
 	}
 
 	title := strings.TrimSpace(doc.Find(".tgme_page_title").Text())

@@ -16,6 +16,8 @@ services:
       - "18080:80"
     environment:
       ESHOSTPORT: 'http://elasticsearch:9200'
+      REDISHOST: 'redis'
+      REDISPORT: '6379'
     networks:
       - searchtelegram
   elasticsearch:

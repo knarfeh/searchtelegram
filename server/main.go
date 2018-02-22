@@ -47,6 +47,7 @@ func RunServer(c *cli.Context) {
 // RunWorker runs worker
 func RunWorker(c *cli.Context) {
 	conf, err := config.ParseYaml(confString)
+	conf.Env()
 	Must(err)
 	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
 	REDISHOST, _ := conf.String("REDISHOST")

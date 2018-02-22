@@ -150,7 +150,6 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
       url: '/api/v1/tg',
       data: postData
     }).then(function (response) {
-      // TODO, not user friendly
       toast("If everything goes well, you will be able to search for it after a while.");
       setTimeout(() => {
         searchkit.reloadSearch();
