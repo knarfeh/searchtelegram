@@ -1,12 +1,14 @@
-hash: d8c71a8f2034d9f98aa06b119dfbd4dadb912a2268b2795803af931feac3a16c
-updated: 2018-01-24T21:15:37.513861093+08:00
+hash: b9abfda5473d642585190a12ca7defbefbcded96de27eb7aef600f1287446c02
+updated: 2018-02-18T16:33:06.491493293+08:00
 imports:
+- name: github.com/andybalholm/cascadia
+  version: 349dd0209470eabd9514242c688c403c0926d266
 - name: github.com/codegangsta/cli
   version: 75104e932ac2ddb944a6ea19d9f9f26316ff1145
 - name: github.com/dgrijalva/jwt-go
   version: dbeaa9332f19a944acb5736b4456cfcc02140e29
 - name: github.com/dlclark/regexp2
-  version: 7632a260cbaf5e7594fc1544a503456ecd0827f1
+  version: 487489b64fb796de2e55f4e8a4ad1e145f80e957
   subpackages:
   - syntax
 - name: github.com/dop251/goja
@@ -33,6 +35,14 @@ imports:
   - currency
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
+- name: github.com/go-redis/redis
+  version: 8b4fa6d443e35ca8b1c37be877285252430b06a3
+  subpackages:
+  - internal
+  - internal/consistenthash
+  - internal/hashtag
+  - internal/pool
+  - internal/proto
 - name: github.com/itsjamie/go-bindata-templates
   version: 78f87e838df0fb89dbcd26e1489f988cd7bc3bb8
 - name: github.com/jteeuwen/go-bindata
@@ -71,15 +81,24 @@ imports:
   version: f65b7c9823a4c30797e9ad3c51d559a36ff8d542
 - name: github.com/pkg/errors
   version: e881fd58d78e04cf6d0de1217f8707c8cc2249bc
+- name: github.com/PuerkitoBio/goquery
+  version: 09540e565986583836b5fc792fe951ec5fd201dd
+- name: github.com/technoweenie/multipartstreamer
+  version: a90a01d73ae432e2611d178c18367fbaa13e0154
 - name: github.com/valyala/bytebufferpool
   version: e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7
 - name: github.com/valyala/fasttemplate
   version: dcecefd839c4193db0d35b88ec65b4c12d360ab0
 - name: golang.org/x/crypto
-  version: a6600008915114d9c087fad9f03d75087b1a74df
+  version: 122d919ec1efcfb58483215da23f815853e24b81
   subpackages:
   - acme
   - acme/autocert
+- name: golang.org/x/net
+  version: 136a25c244d3019482a795d728110278d6ba09a4
+  subpackages:
+  - html
+  - html/atom
 - name: golang.org/x/sys
   version: 2c42eef0765b9837fbdab12011af7830f55f88f0
   subpackages:
@@ -98,7 +117,7 @@ imports:
 - name: gopkg.in/go-playground/assert.v1
   version: 4f4dfbc7d1c48336cf93399deae81aa9067e88af
 - name: gopkg.in/go-playground/validator.v9
-  version: 48a433ba4bcadc5be9aa16d4bdcb383d3f57a741
+  version: 3620d3c0694119b61c72071ff5a05a976e97b05a
 - name: gopkg.in/olivere/elastic.v5
   version: 1094ee281ca61a783c9ba22bf86e7e0a8aa2d112
   subpackages:

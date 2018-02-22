@@ -10,3 +10,4 @@ require('./global');
 require('#app/components/app/styles');
 require('#app/components/homepage/styles');
 require('#app/components/not-found/styles');
+// require('../fonts/bootstrap');

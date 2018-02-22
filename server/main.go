@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/codegangsta/cli"
+	"github.com/olebedev/config"
 )
 
 func main() {
@@ -16,13 +18,18 @@ func main() {
 func Run(args []string) {
 	app := cli.NewApp()
 	app.Name = "app"
-	app.Usage = "React server application"
+	app.Usage = "Search telegram"
 
 	app.Commands = []cli.Command{
 		{
 			Name:   "run",
 			Usage:  "Runs server",
 			Action: RunServer,
+		},
+		{
+			Name:   "worker",
+			Usage:  "Runs worker",
+			Action: RunWorker,
 		},
 	}
 	app.Run(args)
@@ -35,4 +42,16 @@ func RunServer(c *cli.Context) {
 	// see server/app.go:150
 	})
 	app.Run()
+}
+
+// RunWorker runs worker
+func RunWorker(c *cli.Context) {
+	conf, err := config.ParseYaml(confString)
+	Must(err)
+	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
+	REDISHOST, _ := conf.String("REDISHOST")
+	REDISPORT, _ := conf.String("REDISPORT")
+	fmt.Printf("WTF is host??? %s, %s", REDISHOST, REDISPORT)
+	hauler, _ := CreateConsumer(ESHOSTPORT, REDISHOST, REDISPORT)
+	hauler.Query2ES()
 }

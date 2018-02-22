@@ -91,22 +91,34 @@ const config = {
       test: /\.scss$/,
       use: extractSCSS.extract({
         fallback: 'style-loader',
-        use: [{
-          loader: 'css-loader',
-          options: {
-            modules: true,
-            localIdentName: '[local]',
-            disableStructuralMinification: true,
-            importLoaders: true
+        use: [
+          {
+            loader: 'css-loader',
+            options: {
+              modules: true,
+              localIdentName: '[local]',
+              disableStructuralMinification: true,
+              importLoaders: true,
+              // alias: {
+                // '../fonts/bootstrap': 'bootstrap-sass/assets/fonts/bootstrap'
+              // }
+            }
+          },
+          {
+            loader: 'postcss-loader',
+            options: {
+              plugins: postCSSConfig
+            }
+          },
+          {
+            loader: 'sass-loader',
+            // options: {
+              // includePaths: [
+                // path.resolve('./node_modules/bootstrap-sass/stylesheets')
+              // ]
+            // }
           }
-        }, {
-          loader: 'postcss-loader',
-          options: {
-            plugins: postCSSConfig
-          }
-        }, {
-          loader: 'sass-loader'
-        }]
+        ]
       })
     },
     {
@@ -164,11 +176,10 @@ const config = {
       }]
     },
     {
-      test: /\.(pdf|ico|jpg|eot|otf|woff|ttf|mp4|webm)$/,
+      test: /\.(pdf|ico|jpg|eot|otf|woff|woff2|ttf|mp4|webm)$/,
       use: [{
         loader: 'file-loader',
         options: {
-          name: '[name]@[hash].[ext]'
         }
       }]
     },

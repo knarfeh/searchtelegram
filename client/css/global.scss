@@ -1,5 +1,9 @@
 @import "vars.scss";
 @import "components.scss";
+// $fa-font-path: "~font-awesome/fonts";
+// @import '~font-awesome/scss/font-awesome.scss';
+@import "bootstrap/css/bootstrap.css";
+@import "elemental/elemental.min.css";
 
 body {
   margin:0;
@@ -7,6 +11,10 @@ body {
 
 *, *:before, *:after {
   box-sizing: inherit;
+}
+
+.sk-item-list-option {
+  position: inherit;
 }
 
 .sk-layout {

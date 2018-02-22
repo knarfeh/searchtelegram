@@ -1,6 +1,7 @@
-FROM golang:1.8.3 as builder
+FROM golang:1.8.3
 WORKDIR /go/src/github.com/knarfeh/searchtelegram/
 COPY . /go/src/github.com/knarfeh/searchtelegram/
+COPY ./conf/nginx.conf /etc/nginx/searchtelegram_nginx.conf
 
 ENV NVM_DIR /usr/local/nvm
 ENV NODE_VERSION 8.9.1
@@ -18,7 +19,10 @@ ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
 ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 RUN make build
+RUN apt update && \
+  apt install nginx -y
 
 EXPOSE 80 5000
+# nginx -c /etc/nginx/searchtelegram_nginx.conf
 
-CMD ["searchtelegram", "run"]
+CMD ["make", "serve"]

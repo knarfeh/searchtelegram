@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -19,11 +20,12 @@ import (
 // all variables defined locally inside
 // this struct.
 type App struct {
-	Engine   *echo.Echo
-	Conf     *config.Config
-	React    *React
-	API      *API
-	ESClient *ESClient
+	Engine      *echo.Echo
+	Conf        *config.Config
+	React       *React
+	API         *API
+	ESClient    *ESClient
+	RedisClient *RedisClient
 }
 
 // NewApp returns initialized struct
@@ -51,6 +53,11 @@ func NewApp(opts ...AppOptions) *App {
 	conf.Env()
 	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
 	es, _ := NewESClient(ESHOSTPORT, "", "", 3)
+
+	REDISHOST, _ := conf.String("REDISHOST")
+	REDISPORT, _ := conf.String("REDISPORT")
+	fmt.Printf("redis??? %s, %s", REDISHOST, REDISPORT)
+	redis := NewRedisClient(REDISHOST, REDISPORT)
 
 	// Make an engine
 	engine := echo.New()
@@ -84,7 +91,8 @@ func NewApp(opts ...AppOptions) *App {
 			conf.UBool("debug"),
 			engine,
 		),
-		ESClient: es,
+		ESClient:    es,
+		RedisClient: redis,
 	}
 
 	// Map app and uuid for every requests

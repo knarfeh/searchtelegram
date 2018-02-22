@@ -26,8 +26,8 @@ var OKResponse = map[string]interface{}{"ok": true}
 func (api *API) Bind(group *echo.Group) {
 	group.PUT("/v1/tg", api.UpdateTgResource)
 	group.POST("/v1/tg", api.CreateTgResource)
-	group.GET("/v1/tg/:name", api.GetTgResource)
-	group.GET("/v1/tg/:name/exist", api.CheckTgResourceExist)
+	group.GET("/v1/tg/:tgID", api.GetTgResource)
+	group.GET("/v1/tg/:tgID/exist", api.CheckTgResourceExist)
 	group.GET("/v1/search", api.SearchTgResource)
 	group.GET("/v1/tags", api.GetTgTags)
 }
@@ -37,7 +37,7 @@ func (api *API) GetTgTags(c echo.Context) error {
 	// TODO: Add cache
 	app := c.Get("app").(*App)
 
-	agg := elastic.NewTermsAggregation().Field("tags.name.keyword")
+	agg := elastic.NewTermsAggregation().Field("tags.tgid.keyword")
 	search := app.ESClient.Client.Search().Index("telegram").Type("resource")
 	allTags, _ := search.Aggregation("allTags", agg).Do(context.TODO())
 	instance := domain.NewTgTagBuckets()
@@ -79,7 +79,7 @@ func (api *API) SearchTgResource(c echo.Context) error {
 	boolQuery := elastic.NewBoolQuery()
 	boolQuery = boolQuery.Filter(elastic.NewQueryStringQuery(queryString))
 	boolQuery = boolQuery.Must(elastic.NewMoreLikeThisQuery().LikeText(tags).Field(
-		"tags.name",
+		"tags.tgid",
 	).MinDocFreq(0).MinTermFreq(0))
 	search := app.ESClient.Client.Search().Index("telegram").Type("resource").From(from).Size(size)
 	searchResult, err := search.Query(boolQuery).Do(context.TODO())
@@ -110,14 +110,14 @@ func (api *API) CheckTgResourceExist(c echo.Context) error {
 func (api *API) GetTgResource(c echo.Context) error {
 	app := c.Get("app").(*App)
 
-	name := c.Param("name")
-	fmt.Printf("resource name: %s", name)
+	tgid := c.Param("tgid")
+	fmt.Printf("resource tgid: %s", tgid)
 
-	resourceResult, err := app.ESClient.Client.Get().Index("telegram").Type("resource").Id(name).Do(context.TODO())
+	resourceResult, err := app.ESClient.Client.Get().Index("telegram").Type("resource").Id(tgid).Do(context.TODO())
 	if err != nil {
 		e, _ := err.(*elastic.Error)
 		if e.Status == 404 {
-			message := name + " is not exist"
+			message := tgid + " is not exist"
 			errorItem := make(map[string]string)
 			errorItem["code"] = "resource_not_exist"
 			errorItem["message"] = message
@@ -135,6 +135,7 @@ func (api *API) GetTgResource(c echo.Context) error {
 func (api *API) CreateTgResource(c echo.Context) error {
 	app := c.Get("app").(*App)
 	tgResource := domain.NewTgResource()
+	fmt.Println("Create tg resource with: ", *tgResource)
 	if err := c.Bind(tgResource); err != nil {
 		return err
 	}
@@ -144,22 +145,13 @@ func (api *API) CreateTgResource(c echo.Context) error {
 
 	// TODO: get type from telegram api
 	// TODO: Must add people, channel, group or bot tag
-	_, err := app.ESClient.Client.Index().OpType("create").Index("telegram").Type("resource").Id(tgResource.Name).BodyJson(tgResource).Do(context.TODO())
+	tgResouceString, _ := json.Marshal(tgResource)
+	app.Engine.Logger.Infof("Create tg resource: %s", tgResouceString)
+	err := app.RedisClient.Client.Publish("searchtelegram", string(tgResouceString)).Err()
 	if err != nil {
-		// Please make sure domain not exist
-		e, _ := err.(*elastic.Error)
-		if e.Status == 409 {
-			errorItem := make(map[string]string)
-			errorItem["code"] = "resource_already_exist"
-			errorItem["message"] = e.Details.Reason
-			errorItem["source"] = "10001"
-			return c.JSON(e.Status, errorItem)
-		}
-		// Should not happen...
 		panic(err)
 	}
 
-	// TODO, response
 	return c.JSON(http.StatusOK, OKResponse)
 }
 
@@ -175,7 +167,7 @@ func (api *API) UpdateTgResource(c echo.Context) error {
 	}
 
 	// TODO: get type from telegram api
-	updateResult, err := app.ESClient.Client.Update().Index("telegram").Type("resource").Id(tgResource.Name).Doc(tgResource).Do(context.TODO())
+	updateResult, err := app.ESClient.Client.Update().Index("telegram").Type("resource").Id(tgResource.TgID).Doc(tgResource).Do(context.TODO())
 	if err != nil {
 		// TODO: Handle error
 		panic(err)
