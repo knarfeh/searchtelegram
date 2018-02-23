@@ -130,7 +130,7 @@ func (hauler *Hauler) downloadPic(imgSrc, tgID string) bool {
 	defer response.Body.Close()
 
 	// open a file for writing
-	file, err := os.Create("/tmp/images/" + tgID + ".jpg")
+	file, err := os.Create("/media/images/" + tgID + ".jpg")
 	if err != nil {
 		fmt.Print(err)
 		return false

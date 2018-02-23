@@ -5,9 +5,8 @@ export default class App extends Component {
 
   render() {
     return <div>
-      <Helmet title='Go + React + Redux = rocks!' />
+      <Helmet title='Search Telegram' />
       {this.props.children}
     </div>;
   }
-
 }

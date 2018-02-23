@@ -21,13 +21,13 @@ import { WithContext as ReactTags } from 'react-tag-input';
 import { ToastContainer, toast } from 'react-toastify';
 import '../../../node_modules/font-awesome/css/font-awesome.min.css';
 
-const host = "http://localhost:18080/"
+const host = "http://localhost:18080/"   // TODO: configurable
 const searchkit = new SearchkitManager(host)
 
 const HitsListItem = (props)=> {
   const {bemBlocks, result} = props
   let tDotMe = "https://t.me/" + result._source.tgid
-  let photoUrl = result._source.imgsrc
+  let photoUrl = "http://localhost:18080" + result._source.imgsrc
   var sectionStyle = {
     width: "122px",
     height: "122px",
@@ -156,7 +156,13 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
       }, 5000);
     }) ;
     // handle not exist
+    // telegram id || telegram link || telegram at
+    // jquery remove by data-key
+    // submit python_cn
+    // limit api frequency
     // add footer
+    // log
+    // picture to s3, check picture already exist first
     // add detail page
     // add update page
   }
@@ -184,7 +190,7 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
   render() {
     const formInputStyle = {
       "paddingRight": 0
-    }
+    };
     const { tags, } = this.state;
     return (
       <div className="app">
@@ -238,6 +244,9 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
               <LayoutResults>
                 <ActionBar>
                   <ActionBarRow>
+                    <HitsStats translations={{
+                      "hitstats.results_found":"{hitCount} results were found"
+                    }}/>
                     <ViewSwitcherToggle/>
                   </ActionBarRow>
                   <ActionBarRow>
@@ -246,12 +255,14 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
                   </ActionBarRow>
                 </ActionBar>
                 <ViewSwitcherHits
-                    hitsPerPage={10} highlightFields={["tgid", "title", "info"]}
+                    hitsPerPage={3}
+                    highlightFields={["tgid", "title"]}
                     sourceFilter={["tgid", "title", "desc", "type", "tags", "imgsrc"]}
                     hitComponents={[
                       {key:"list", title:"List", itemComponent: HitsListItem, defaultOption:true}
                     ]}
                     scrollTo="body"
+                    className="view-swtich"
                 />
                 <NoHits suggestionsField={"tgid"}/>
                 <Pagination showNumbers={true}/>
