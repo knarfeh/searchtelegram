@@ -33,7 +33,7 @@ COPY --from=builder /go/bin/searchtelegram /bin/
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/*.sh /
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/supervisord.conf /etc/supervisord.conf
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/nginx.conf /etc/nginx/searchtelegram_nginx.conf
-RUN mkdir -p /var/log/supervisor /var/log/searchtelegram /media/images
+RUN mkdir -p /var/log/supervisor /var/log/searchtelegram /media/images /var/nginx/cache/aws
 RUN chmod +x /*.sh
 
 CMD ["/searchtelegram.sh"]

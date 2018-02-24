@@ -10,7 +10,7 @@ import {
   ViewSwitcherHits, ViewSwitcherToggle, DynamicRangeFilter,
   InputFilter, GroupedSelectedFilters,
   Layout, TopBar, LayoutBody, LayoutResults,
-  ActionBar, ActionBarRow, SideBar, TagFilterConfig} from 'searchkit'
+  ActionBar, ActionBarRow, SideBar, TagFilterConfig, Hits} from 'searchkit'
 import {
   Button, Alert, Spinner, Modal, ModalHeader,
   ModalFooter, ModalBody, Form, FormField, FormInput,
@@ -27,7 +27,8 @@ const searchkit = new SearchkitManager(host)
 const HitsListItem = (props)=> {
   const {bemBlocks, result} = props
   let tDotMe = "https://t.me/" + result._source.tgid
-  let photoUrl = "http://localhost:18080" + result._source.imgsrc
+  // let photoUrl = "http://localhost:18080" + result._source.imgsrc
+  let photoUrl = "https://s3.amazonaws.com/searchtelegram/media/images/telegram.jpg"
   var sectionStyle = {
     width: "122px",
     height: "122px",
@@ -160,6 +161,7 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
     // jquery remove by data-key
     // submit python_cn
     // limit api frequency
+    // remove duplicate tags
     // add footer
     // log
     // picture to s3, check picture already exist first
@@ -254,15 +256,12 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
                     <ResetFilters/>
                   </ActionBarRow>
                 </ActionBar>
-                <ViewSwitcherHits
-                    hitsPerPage={3}
-                    highlightFields={["tgid", "title"]}
-                    sourceFilter={["tgid", "title", "desc", "type", "tags", "imgsrc"]}
-                    hitComponents={[
-                      {key:"list", title:"List", itemComponent: HitsListItem, defaultOption:true}
-                    ]}
-                    scrollTo="body"
-                    className="view-swtich"
+                <Hits
+                  hitsPerPage={10}
+                  highlightFields={["tgid", "title"]}
+                  sourceFilter={["tgid", "title", "desc", "type", "tags", "imgsrc"]}
+                  mod="sk-hits-list"
+                  itemComponent={HitsListItem}
                 />
                 <NoHits suggestionsField={"tgid"}/>
                 <Pagination showNumbers={true}/>

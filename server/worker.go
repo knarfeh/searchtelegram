@@ -172,6 +172,7 @@ func (hauler *Hauler) getData(tgID string) (*tgMeInfo, error) {
 	if imgSrc != "" {
 		hauler.downloadPic(imgSrc, tgID)
 		imgPath = "/images/" + tgID + ".jpg"
+		// TODO: upload to s3, then delete it
 	} else {
 		imgPath = "/images/telegram.jpg"
 	}
