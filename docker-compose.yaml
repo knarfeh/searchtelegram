@@ -8,12 +8,16 @@ services:
     volumes:
       - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
       # - ./container-data/nginx/static/images:/media/images
-      - /tmp/images:/media/images
       - ./server:/go/src/github.com/knarfeh/searchtelegram/server
       - ./client:/go/src/github.com/knarfeh/searchtelegram/client
+      - ./vendor:/go/src/github.com/knarfeh/searchtelegram/vendor
     ports:
       - "15000:5000"
       - "18080:80"
+    entrypoint: [bash]
+    tty: true
+    env_file:
+      - envs/secret.env
     environment:
       ESHOSTPORT: 'http://elasticsearch:9200'
       REDISHOST: 'redis'

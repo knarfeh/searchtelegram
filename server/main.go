@@ -52,7 +52,11 @@ func RunWorker(c *cli.Context) {
 	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
 	REDISHOST, _ := conf.String("REDISHOST")
 	REDISPORT, _ := conf.String("REDISPORT")
-	fmt.Printf("WTF is host??? %s, %s", REDISHOST, REDISPORT)
-	hauler, _ := CreateConsumer(ESHOSTPORT, REDISHOST, REDISPORT)
+	AWSACCESSKEY, _ := conf.String("AWSACCESSKEY")
+	AWSSECRETKEY, _ := conf.String("AWSSECRETKEY")
+	AWSREGION, _ := conf.String("AWSREGION")
+	fmt.Println("TODO, ping es, redis, aws")
+	fmt.Printf("%s, %s, %s, %s", AWSACCESSKEY, AWSSECRETKEY, AWSREGION, ESHOSTPORT)
+	hauler, _ := CreateConsumer(ESHOSTPORT, REDISHOST, REDISPORT, AWSACCESSKEY, AWSSECRETKEY, AWSREGION)
 	hauler.Query2ES()
 }

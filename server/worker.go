@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,7 +13,9 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/knarfeh/searchtelegram/server/domain"
 
 	elastic "gopkg.in/olivere/elastic.v5"
@@ -22,6 +25,7 @@ import (
 type Hauler struct {
 	esClient    *ESClient
 	redisClient *RedisClient
+	s3Client    *S3Client
 }
 
 type tgMeInfo struct {
@@ -32,12 +36,14 @@ type tgMeInfo struct {
 }
 
 // CreateConsumer create consumer ...
-func CreateConsumer(esURL, redisHost, redisPort string) (*Hauler, error) {
+func CreateConsumer(esURL, redisHost, redisPort, accessKey, secretKey, region string) (*Hauler, error) {
 	es, _ := NewESClient(esURL, "", "", 3)
 	redisClient := NewRedisClient(redisHost, redisPort)
+	s3Client := NewS3Client(accessKey, secretKey, region)
 	return &Hauler{
 		esClient:    es,
 		redisClient: redisClient,
+		s3Client:    s3Client,
 	}, nil
 }
 
@@ -126,11 +132,9 @@ func (hauler *Hauler) downloadPic(imgSrc, tgID string) bool {
 	if e != nil {
 		fmt.Print(e)
 	}
-
 	defer response.Body.Close()
-
 	// open a file for writing
-	file, err := os.Create("/media/images/" + tgID + ".jpg")
+	file, err := os.Create("/tmp/images/" + tgID + ".jpg")
 	if err != nil {
 		fmt.Print(err)
 		return false
@@ -143,6 +147,37 @@ func (hauler *Hauler) downloadPic(imgSrc, tgID string) bool {
 	}
 	file.Close()
 	return true
+}
+
+// https://medium.com/@questhenkart/s3-image-uploads-via-aws-sdk-with-golang-63422857c548
+// uploadPic2S3 upload picture to s3
+func (hauler *Hauler) uploadPic2S3(tgID string) {
+	file, err := os.Open("/tmp/images/" + tgID + ".jpg") // DEBUG mode
+	if err != nil {
+		fmt.Printf("err opening file: %s", err)
+	}
+	defer file.Close()
+	fileInfo, _ := file.Stat()
+	size := fileInfo.Size()
+	buffer := make([]byte, size) // read file content to buffer
+
+	file.Read(buffer)
+	fileBytes := bytes.NewReader(buffer)
+	fileType := http.DetectContentType(buffer)
+	path := "/images/" + tgID + ".jpg"
+	params := &s3.PutObjectInput{
+		ACL:           aws.String("public-read"),
+		Bucket:        aws.String("searchtelegram"),
+		Key:           aws.String(path),
+		Body:          fileBytes,
+		ContentLength: aws.Int64(size),
+		ContentType:   aws.String(fileType),
+	}
+	resp, err := hauler.s3Client.Client.PutObject(params)
+	if err != nil {
+		fmt.Printf("bad response: %s", err)
+	}
+	fmt.Printf("response %s", awsutil.StringValue(resp))
 }
 
 // getData ...
@@ -171,6 +206,8 @@ func (hauler *Hauler) getData(tgID string) (*tgMeInfo, error) {
 	imgPath := ""
 	if imgSrc != "" {
 		hauler.downloadPic(imgSrc, tgID)
+		imgPath = "/images/" + tgID + ".jpg"
+		hauler.uploadPic2S3(tgID)
 		imgPath = "/images/" + tgID + ".jpg"
 		// TODO: upload to s3, then delete it
 	} else {

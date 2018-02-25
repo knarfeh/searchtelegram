@@ -27,8 +27,8 @@ const searchkit = new SearchkitManager(host)
 const HitsListItem = (props)=> {
   const {bemBlocks, result} = props
   let tDotMe = "https://t.me/" + result._source.tgid
-  // let photoUrl = "http://localhost:18080" + result._source.imgsrc
-  let photoUrl = "https://s3.amazonaws.com/searchtelegram/media/images/telegram.jpg"
+  let photoUrl = "http://localhost:18080" + result._source.imgsrc
+  // let photoUrl = "https://s3.amazonaws.com/searchtelegram/media/images/telegram.jpg"
   var sectionStyle = {
     width: "122px",
     height: "122px",
@@ -157,9 +157,10 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
       }, 5000);
     }) ;
     // handle not exist
-    // telegram id || telegram link || telegram at
-    // jquery remove by data-key
-    // submit python_cn
+    // check tgID exist when add one, use redis
+    // input support telegram id || telegram link || telegram at
+    // test submit python_cn
+    // unit test, e2e test
     // limit api frequency
     // remove duplicate tags
     // add footer
