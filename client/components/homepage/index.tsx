@@ -27,6 +27,7 @@ const searchkit = new SearchkitManager(host)
 const HitsListItem = (props)=> {
   const {bemBlocks, result} = props
   let tDotMe = "https://t.me/" + result._source.tgid
+  // let photoUrl = result._source.imgsrc
   let photoUrl = "http://localhost:18080" + result._source.imgsrc
   // let photoUrl = "https://s3.amazonaws.com/searchtelegram/media/images/telegram.jpg"
   var sectionStyle = {
@@ -156,16 +157,8 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
         searchkit.reloadSearch();
       }, 5000);
     }) ;
-    // handle not exist
-    // check tgID exist when add one, use redis
-    // input support telegram id || telegram link || telegram at
-    // test submit python_cn
     // unit test, e2e test
-    // limit api frequency
-    // remove duplicate tags
-    // add footer
-    // log
-    // picture to s3, check picture already exist first
+    // limit api frequency, after online
     // add detail page
     // add update page
   }
@@ -270,6 +263,26 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
             </LayoutBody>
           </Layout>
         </SearchkitProvider>
+        <div className="container">
+          <div id="footer" className="row">
+            <div className="col-xs-12 col-md-5">
+              <div> © 2018 <a href="https://github.com/knarfeh" target="_blank"> knarfeh </a> |
+                <a href="#" target="_blank"> Source </a> |
+                <a href="#"> Telegram Bot </a> |
+                <a href="#"> Email </a>
+              </div>
+              <br/>
+            </div>
+            <div className="col-md-1 text-center">
+            </div>
+            <div className="clearfix visible-sm visible-xs"><br/></div>
+            <div className="col-xs-12 col-md-5 text-right">
+              Donate BTC: <a className="pointer" data-toggle="modal" data-target="#donate_btc">3CMCRgEm8HVz3DrWaCCid3vAANE42jcEv9</a><br/>
+              Donate ETH: <a className="pointer" data-toggle="modal" data-target="#donate_eth">0x0074709077B8AE5a245E4ED161C971Dc4c3C8E2B</a><br/>
+              <a className="pointer" data-toggle="modal" data-target="#donate_ada">Donate ADA</a><br/>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
