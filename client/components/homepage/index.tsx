@@ -66,7 +66,18 @@ export interface ReactTagsItem {
   text: string
 }
 
-export default class Homepage extends React.Component<{}, { showPopup: boolean, tgID: string, type: string, tags: ReactTags[], description: string, validateTgIDMessage: any}> {
+export default class Homepage extends React.Component
+  <{}, {
+    showSubmitPopup: boolean,
+    showBTCPopup: boolean,
+    showETHPopup: boolean,
+    showADAPopup: boolean,
+    tgID: string,
+    type: string,
+    tags: ReactTags[],
+    description: string,
+    validateTgIDMessage: any
+  }> {
   /*eslint-disable */
   static onEnter({store, nextState, replaceState, callback}) {
     // Load here any data.
@@ -76,16 +87,22 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
   constructor(props) {
     super(props);
     this.state = {
-      showPopup: false,
+      showSubmitPopup: false,
+      showBTCPopup: false,
+      showETHPopup: false,
+      showADAPopup: false,
       tgID: "",
       type: "",
-      // tags: "", // TODO: define a interface
-      // tags: [{ id: 1, text: "Thailand" }, { id: 2, text: "India" }],
       tags: [],
       description: "",
       validateTgIDMessage: "",
     };
-    this.togglePopup = this.togglePopup.bind(this);
+    this.toggleSubmitPopup = this.toggleSubmitPopup.bind(this);
+    this.toggleBTCPopup = this.toggleBTCPopup.bind(this);
+    this.toggleETHPopup = this.toggleETHPopup.bind(this);
+    this.toggleADAPopup = this.toggleADAPopup.bind(this);
+
+    this.handleDonateClick = this.handleDonateClick.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
 
@@ -108,10 +125,46 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
     this.setState({tags: tags});
   }
 
-  togglePopup() {
+  toggleSubmitPopup() {
     this.setState({
-      showPopup: !this.state.showPopup
+      showSubmitPopup: !this.state.showSubmitPopup
     });
+  }
+
+  toggleBTCPopup() {
+    this.setState({
+      showBTCPopup: !this.state.showBTCPopup
+    })
+  }
+
+  toggleETHPopup() {
+    this.setState({
+      showETHPopup: !this.state.showETHPopup
+    })
+  }
+
+  toggleADAPopup() {
+    this.setState({
+      showADAPopup: !this.state.showADAPopup
+    })
+  }
+
+  handleDonateClick(event) {
+    const type = event.target.getAttribute('data-target')
+    switch(type) {
+      case 'btc': {
+        this.setState({showBTCPopup: !this.state.showBTCPopup});
+        break;
+      }
+      case 'eth': {
+        this.setState({showETHPopup: !this.state.showETHPopup});
+        break;
+      }
+      case 'ada': {
+        this.setState({showADAPopup: !this.state.showADAPopup});
+        break;
+      }
+    };
   }
 
   handleSubmit(event) {
@@ -128,7 +181,7 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
       return
     }
 
-    this.togglePopup()
+    this.toggleSubmitPopup()
     const tags = _.map(this.state.tags, (item) => {
       return {
         name: item["text"],
@@ -155,12 +208,13 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
       toast("If everything goes well, you will be able to search for it after a while.");
       setTimeout(() => {
         searchkit.reloadSearch();
-      }, 5000);
+      }, 7000);
+    }).catch(function (error) {
+      if(error.response.status == 503) {
+        toast.error("Maybe you submitted too often, please try again later. " +
+        " Perhaps you can support the server through donations")
+      }
     }) ;
-    // unit test, e2e test
-    // limit api frequency, after online
-    // add detail page
-    // add update page
   }
 
   handleInputChange(event) {
@@ -197,8 +251,8 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
               <div className="st-logo"><a href="/" className="st-link">Search Telegram</a></div>
               <SearchBox autofocus={true} searchOnChange={true} />
               <div className="option">
-                <Modal isOpen={this.state.showPopup} onCancel={this.togglePopup} backdropClosesModal>
-                  <ModalHeader text="Submit people/group/channel" showCloseButton onClose={this.togglePopup} />
+                <Modal isOpen={this.state.showSubmitPopup} onCancel={this.toggleSubmitPopup} backdropClosesModal>
+                  <ModalHeader text="Submit people/group/channel" showCloseButton onClose={this.toggleSubmitPopup} />
                   <ModalBody>
                     <Form onSubmit={this.handleSubmit}>
                       <FormField label="Telegram ID, please make sure it exist">
@@ -230,7 +284,7 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
                     </Form>
                   </ModalBody>
                 </Modal>
-                <Button type="primary" onClick={this.togglePopup}>Submit New</Button>
+                <Button type="primary" onClick={this.toggleSubmitPopup}>New Submit</Button>
               </div>
             </TopBar>
             <LayoutBody>
@@ -267,9 +321,9 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
           <div id="footer" className="row">
             <div className="col-xs-12 col-md-5">
               <div> © 2018 <a href="https://github.com/knarfeh" target="_blank"> knarfeh </a> |
-                <a href="#" target="_blank"> Source </a> |
-                <a href="#"> Telegram Bot </a> |
-                <a href="#"> Email </a>
+                <a href="mailto:knarfeh@outlook.com"> Email </a> |
+                <a href="https://github.com/knarfeh/searchtelegram" target="_blank"> Source </a> |
+                <a href="https://t.me/SearchTelegramPublic" target="_blank"> Telegram Group </a>
               </div>
               <br/>
             </div>
@@ -277,11 +331,41 @@ export default class Homepage extends React.Component<{}, { showPopup: boolean, 
             </div>
             <div className="clearfix visible-sm visible-xs"><br/></div>
             <div className="col-xs-12 col-md-5 text-right">
-              Donate BTC: <a className="pointer" data-toggle="modal" data-target="#donate_btc">3CMCRgEm8HVz3DrWaCCid3vAANE42jcEv9</a><br/>
-              Donate ETH: <a className="pointer" data-toggle="modal" data-target="#donate_eth">0x0074709077B8AE5a245E4ED161C971Dc4c3C8E2B</a><br/>
-              <a className="pointer" data-toggle="modal" data-target="#donate_ada">Donate ADA</a><br/>
+            Donate <a className="pointer" data-toggle="modal" data-target="btc" onClick={this.handleDonateClick} >BTC </a>
+              <a className="pointer" data-toggle="modal" data-target="eth" onClick={this.handleDonateClick}>ETH </a>
+              <a className="pointer" data-toggle="modal" data-target="ada" onClick={this.handleDonateClick}>ADA</a>
             </div>
           </div>
+          <Modal isOpen={this.state.showBTCPopup} onCancel={this.toggleBTCPopup} backdropClosesModal>
+            <ModalHeader text="Donate BTC" showCloseButton onClose={this.toggleBTCPopup} />
+            <ModalBody>
+              <div className="text-center">
+                <p>1Aa8ZXPbzoyHGp9SmnWjSaNq56py3jCj96</p>
+                <br/>
+                <img src="/images/searchtelegrambitcoinqrcode.png" alt="Donate Bitcoin" />
+              </div>
+            </ModalBody>
+          </Modal>
+          <Modal isOpen={this.state.showETHPopup} onCancel={this.toggleETHPopup} backdropClosesModal>
+            <ModalHeader text="Donate ETH" showCloseButton onClose={this.toggleETHPopup} />
+            <ModalBody>
+              <div className="text-center">
+                <p>0x3A149665Fb7fe1b44892D50eCA0bd2BdcD21C85D</p>
+                <br/>
+                <img src="/images/searchtelegramethqrcode.png" alt="Donate Ethereum" />
+              </div>
+            </ModalBody>
+          </Modal>
+          <Modal isOpen={this.state.showADAPopup} onCancel={this.toggleADAPopup} backdropClosesModal width="large">
+            <ModalHeader text="Donate ADA" showCloseButton onClose={this.toggleADAPopup} />
+            <ModalBody>
+              <div className="text-center">
+                <p>DdzFFzCqrhssJHqka9HYyaXXYPdasFQEaSPRULDxgkgBN7jkkDmueznLaP3cMNuouLE4WHs5cLrHtn8oCn3FAJQ7fa2eytjzxS4CmH6K</p>
+                <br/>
+                <img src="/images/searchtelegramdonateqrcode.png" alt="Donate Ada coin" />
+              </div>
+            </ModalBody>
+          </Modal>
         </div>
       </div>
     );

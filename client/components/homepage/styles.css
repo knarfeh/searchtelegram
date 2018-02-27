@@ -22,6 +22,17 @@
   text-decoration: none;
 }
 
+/* selected link */
+.st-link:active {
+  color: inherit; /* Inherits color property from its parent */
+  text-decoration: none;
+}
+
+.st-link:visited {
+  color: inherit; /* Inherits color property from its parent */
+  text-decoration: none;
+}
+
 .option {
   flex: 0 0 250px;
   padding: 3px 20px;
@@ -150,4 +161,8 @@ div.ReactTags__suggestions ul li.ReactTags__activeSuggestion {
 .icon-social {
   width: 20px;
   height: 20px;
+}
+
+.text-center {
+  text-align: center;
 }
