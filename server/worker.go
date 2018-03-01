@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,7 +13,9 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/knarfeh/searchtelegram/server/domain"
 
 	elastic "gopkg.in/olivere/elastic.v5"
@@ -22,6 +25,7 @@ import (
 type Hauler struct {
 	esClient    *ESClient
 	redisClient *RedisClient
+	s3Client    *S3Client
 }
 
 type tgMeInfo struct {
@@ -32,12 +36,14 @@ type tgMeInfo struct {
 }
 
 // CreateConsumer create consumer ...
-func CreateConsumer(esURL, redisHost, redisPort string) (*Hauler, error) {
+func CreateConsumer(esURL, redisHost, redisPort, accessKey, secretKey, region string) (*Hauler, error) {
 	es, _ := NewESClient(esURL, "", "", 3)
 	redisClient := NewRedisClient(redisHost, redisPort)
+	s3Client := NewS3Client(accessKey, secretKey, region)
 	return &Hauler{
 		esClient:    es,
 		redisClient: redisClient,
+		s3Client:    s3Client,
 	}, nil
 }
 
@@ -69,30 +75,35 @@ func (hauler *Hauler) handleQuery(query string) {
 		panic(err)
 	}
 
-	fmt.Println(tgResource)
-	tgInfo, err := hauler.getData(tgResource.TgID)
+	if strings.HasPrefix(tgResource.TgID, "https://t.me/") {
+		tgResource.TgID = tgResource.TgID[13:]
+	} else if strings.HasPrefix(tgResource.TgID, "@") {
+		tgResource.TgID = tgResource.TgID[1:]
+	}
+	tgID := tgResource.TgID
+	tgInfo, err := hauler.getData(tgID)
 	if err != nil {
-		fmt.Println("Got error!!!")
-		fmt.Println(err.Error())
+		fmt.Printf("Got error when getting data from t.me, error: %s\n", err.Error())
 		return
 	}
-	fmt.Println("TODO, handle 404")
-	fmt.Println("tgInfo????")
-	fmt.Println(tgInfo)
+	fmt.Printf("tgInfo: %s\n", tgInfo)
 
 	tgResource.Title = tgInfo.Title
-	tgResource.Type = tgInfo.Type // TODO: add tags
+	tgResource.Type = tgInfo.Type
 	tagItem := &domain.Tag{
 		Count: 1,
 		Name:  tgInfo.Type,
 	}
 	tgResource.Tags = append(tgResource.Tags, *tagItem)
+	tgResource.Tags = hauler.rmDuplicateTags(tgResource.Tags)
 	tgResource.Imgsrc = tgInfo.ImgSrc
+
 	if tgResource.Desc == "" {
-		fmt.Println("tgResource.Desc is nil, got from tdotme")
+		fmt.Println("No description input, got from tdotme")
 		tgResource.Desc = tgInfo.Description
 	}
-	_, err = hauler.esClient.Client.Index().OpType("create").Index("telegram").Type("resource").Id(tgResource.TgID).BodyJson(tgResource).Do(context.TODO())
+	_, err = hauler.esClient.Client.Index().OpType("create").Index("telegram").Type("resource").Id(tgID).BodyJson(tgResource).Do(context.TODO())
+	hauler.redisClient.Client.Set("tgid:"+tgID, "1", 0)
 
 	if err != nil {
 		// Please make sure domain not exist
@@ -107,6 +118,19 @@ func (hauler *Hauler) handleQuery(query string) {
 		// Should not happen...
 		// panic(err)
 	}
+}
+
+// rmDuplicateTags remove duplicate tags
+func (hauler *Hauler) rmDuplicateTags(tags []domain.Tag) []domain.Tag {
+	keys := make(map[string]bool)
+	list := []domain.Tag{}
+	for _, entry := range tags {
+		if _, value := keys[entry.Name]; !value {
+			keys[entry.Name] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }
 
 // getTgType ...
@@ -126,9 +150,7 @@ func (hauler *Hauler) downloadPic(imgSrc, tgID string) bool {
 	if e != nil {
 		fmt.Print(e)
 	}
-
 	defer response.Body.Close()
-
 	// open a file for writing
 	file, err := os.Create("/tmp/images/" + tgID + ".jpg")
 	if err != nil {
@@ -145,13 +167,50 @@ func (hauler *Hauler) downloadPic(imgSrc, tgID string) bool {
 	return true
 }
 
+// https://medium.com/@questhenkart/s3-image-uploads-via-aws-sdk-with-golang-63422857c548
+// uploadPic2S3 upload picture to s3
+func (hauler *Hauler) uploadPic2S3(tgID string) {
+	file, err := os.Open("/tmp/images/" + tgID + ".jpg") // DEBUG mode
+	if err != nil {
+		fmt.Printf("err opening file: %s", err)
+	}
+	defer file.Close()
+	fileInfo, _ := file.Stat()
+	size := fileInfo.Size()
+	buffer := make([]byte, size) // read file content to buffer
+
+	file.Read(buffer)
+	fileBytes := bytes.NewReader(buffer)
+	fileType := http.DetectContentType(buffer)
+	path := "/images/" + tgID + ".jpg"
+	params := &s3.PutObjectInput{
+		ACL:           aws.String("public-read"),
+		Bucket:        aws.String("searchtelegram"),
+		Key:           aws.String(path),
+		Body:          fileBytes,
+		ContentLength: aws.Int64(size),
+		ContentType:   aws.String(fileType),
+	}
+	resp, err := hauler.s3Client.Client.PutObject(params)
+	if err != nil {
+		fmt.Printf("bad response: %s", err)
+	}
+	fmt.Printf("Response from s3 %s\n", awsutil.StringValue(resp))
+}
+
 // getData ...
 func (hauler *Hauler) getData(tgID string) (*tgMeInfo, error) {
 	url := "https://t.me/" + tgID
-	fmt.Printf("Getting data, url: %s", url)
+
+	tgIDExist, _ := hauler.redisClient.Client.Get("tgid:" + tgID).Result()
+	if tgIDExist != "" {
+		return nil, errors.New("Already exist in redis")
+	}
+
+	fmt.Printf("\nGetting tgID, url: %s \n", url)
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
-		return nil, errors.New("Got error from tdotme...")
+		return nil, errors.New("got error from tdotme")
 	}
 
 	title := strings.TrimSpace(doc.Find(".tgme_page_title").Text())
@@ -171,6 +230,8 @@ func (hauler *Hauler) getData(tgID string) (*tgMeInfo, error) {
 	imgPath := ""
 	if imgSrc != "" {
 		hauler.downloadPic(imgSrc, tgID)
+		hauler.uploadPic2S3(tgID)
+		os.Remove("/tmp/images/" + tgID + ".jpg")
 		imgPath = "/images/" + tgID + ".jpg"
 	} else {
 		imgPath = "/images/telegram.jpg"

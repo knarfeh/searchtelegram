@@ -8,3 +8,4 @@
 .pid
 .DS_Store
 container-data/
+envs/secret.env

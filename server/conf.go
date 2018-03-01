@@ -21,6 +21,9 @@ title: Go Starter Kit
 ESHOSTPORT: http://localhost:9200
 REDISHOST: localhost
 REDISPORT: 16379
+AWSACCESSKEY:
+AWSSECRETKEY:
+AWSREGION:
 api:
   prefix: /api
 duktape:

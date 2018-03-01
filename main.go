@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +10,11 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func getTgType(content string) string {
@@ -45,10 +51,50 @@ func downloadPic(imgSrc, tgID string) bool {
 	return true
 }
 
+// https://medium.com/@questhenkart/s3-image-uploads-via-aws-sdk-with-golang-63422857c548
+func uploadPic2S3(tgID string) {
+	awsAccessKeyID := ""
+	awsSecretAccessKey := ""
+	token := ""
+	creds := credentials.NewStaticCredentials(awsAccessKeyID, awsSecretAccessKey, token)
+	_, err := creds.Get()
+	if err != nil {
+		fmt.Printf("bad credentials: %s", err)
+	}
+	cfg := aws.NewConfig().WithRegion("us-east-1").WithCredentials(creds)
+	svc := s3.New(session.New(), cfg)
+
+	file, err := os.Open("/tmp/images/" + tgID + ".jpg") // DEBUG mode
+	if err != nil {
+		fmt.Printf("err opening file: %s", err)
+	}
+	defer file.Close()
+	fileInfo, _ := file.Stat()
+	size := fileInfo.Size()
+	buffer := make([]byte, size) // read file content to buffer
+
+	file.Read(buffer)
+	fileBytes := bytes.NewReader(buffer)
+	fileType := http.DetectContentType(buffer)
+	path := "/images/" + tgID + ".jpg"
+	params := &s3.PutObjectInput{
+		ACL:           aws.String("public-read"),
+		Bucket:        aws.String("searchtelegram"),
+		Key:           aws.String(path),
+		Body:          fileBytes,
+		ContentLength: aws.Int64(size),
+		ContentType:   aws.String(fileType),
+	}
+	resp, err := svc.PutObject(params)
+	if err != nil {
+		fmt.Printf("bad response: %s", err)
+	}
+	fmt.Printf("response %s", awsutil.StringValue(resp))
+}
+
 func ExampleScrape() {
-	doc, err := goquery.NewDocument("http://t.me/asdfasdffffffffffffff")
-	html, _ := doc.Html()
-	fmt.Printf("doc??? %s", html)
+	tgID := "knarfeh"
+	doc, err := goquery.NewDocument("http://t.me/" + tgID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,10 +123,12 @@ func ExampleScrape() {
 
 	imgPath := ""
 	if imgSrc != "" {
-		downloadPic(imgSrc, "telegram")
-		imgPath = "/media/images/" + "telegram" + ".jpg"
+		downloadPic(imgSrc, tgID)
+		uploadPic2S3(tgID)
+		imgPath = "https://s3.amazonaws.com/searchtelegram/media/images/" + tgID + ".jpg"
+		// imgPath = "/media/images/" + "telegram" + ".jpg"
 	} else {
-		imgPath = "/media/images/" + "telegram" + ".jpg"
+		imgPath = "https://s3.amazonaws.com/searchtelegram/media/images/" + tgID + ".jpg"
 	}
 	fmt.Printf("imgPath???%s", imgPath)
 	if title == "" && strings.HasPrefix(description, "If you have Telegram, you can contact") {

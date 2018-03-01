@@ -4,7 +4,7 @@ services:
     image: daocloud.io/knarfeh/searchtelegram
     build:
       context: .
-      dockerfile: ./.docker/.dev.dockerfile
+      dockerfile: ./.docker/.prod.dockerfile
     volumes:
       - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
     ports:
@@ -12,14 +12,16 @@ services:
       - "80:80"
     environment:
       ESHOSTPORT: 'http://elasticsearch:9200'
+      REDISHOST: 'redis'
+      REDISPORT: '6379'
     networks:
       - searchtelegram
   elasticsearch:
     build:
       context: .
-      dockerfile: ./conf/es-kibana/dev/elasticsearch/Dockerfile
+      dockerfile: ./conf/es-kibana/prod/elasticsearch/Dockerfile
     volumes:
-      - ./conf/es-kibana/dev/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./conf/es-kibana/prod/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - ./container-data/elasticsearch:/usr/share/elasticsearch/data
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
@@ -28,9 +30,9 @@ services:
   kibana:
     build:
       context: .
-      dockerfile: ./conf/es-kibana/dev/kibana/Dockerfile
+      dockerfile: ./conf/es-kibana/prod/kibana/Dockerfile
     volumes:
-      - ./conf/es-kibana/dev/kibana/config/:/usr/share/kibana/config
+      - ./conf/es-kibana/prod/kibana/config/:/usr/share/kibana/config
     ports:
       - "5601:5601"
     depends_on:

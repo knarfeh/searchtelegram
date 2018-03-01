@@ -22,6 +22,7 @@ RUN make build
 RUN apt update && \
   apt install nginx -y
 
+RUN mkdir -p /var/log/supervisor /var/log/searchtelegram /tmp/images /var/nginx/cache/aws
 EXPOSE 80 5000
 # nginx -c /etc/nginx/searchtelegram_nginx.conf
 

@@ -1,8 +1,10 @@
-hash: b9abfda5473d642585190a12ca7defbefbcded96de27eb7aef600f1287446c02
-updated: 2018-02-18T16:33:06.491493293+08:00
+hash: 6d7745696f07a27b7d52d169cbf348fef9a9870e8aaf58614ded5a7b482c8318
+updated: 2018-02-24T16:16:58.382034376+08:00
 imports:
 - name: github.com/andybalholm/cascadia
-  version: 349dd0209470eabd9514242c688c403c0926d266
+  version: 901648c87902174f774fac311d7f176f8647bdaa
+- name: github.com/aws/aws-sdk-go
+  version: f7f1ee9550cc76ceea731d99c8dbe00a0c39f66d
 - name: github.com/codegangsta/cli
   version: 75104e932ac2ddb944a6ea19d9f9f26316ff1145
 - name: github.com/dgrijalva/jwt-go
@@ -95,7 +97,7 @@ imports:
   - acme
   - acme/autocert
 - name: golang.org/x/net
-  version: 136a25c244d3019482a795d728110278d6ba09a4
+  version: cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb
   subpackages:
   - html
   - html/atom
