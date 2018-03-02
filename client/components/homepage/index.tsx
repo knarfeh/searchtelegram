@@ -21,14 +21,14 @@ import { WithContext as ReactTags } from 'react-tag-input';
 import { ToastContainer, toast } from 'react-toastify';
 import '../../../node_modules/font-awesome/css/font-awesome.min.css';
 
-const host = "http://localhost:18080/"   // TODO: configurable
+const host = "/"   // TODO: configurable
 const searchkit = new SearchkitManager(host)
 
 const HitsListItem = (props)=> {
   const {bemBlocks, result} = props
   let tDotMe = "https://t.me/" + result._source.tgid
-  // let photoUrl = result._source.imgsrc
-  let photoUrl = "http://localhost:18080" + result._source.imgsrc
+  let photoUrl = result._source.imgsrc
+  // let photoUrl = "http://localhost:18080" + result._source.imgsrc
   // let photoUrl = "https://s3.amazonaws.com/searchtelegram/media/images/telegram.jpg"
   var sectionStyle = {
     width: "122px",

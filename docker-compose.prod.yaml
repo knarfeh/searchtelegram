@@ -1,15 +1,15 @@
 version: '2'
 services:
   searchtelegram:
-    image: daocloud.io/knarfeh/searchtelegram
+    image: daocloud.io/knarfeh/searchtelegramprivate:latest
     build:
       context: .
       dockerfile: ./.docker/.prod.dockerfile
-    volumes:
-      - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
     ports:
       - "5000:5000"
       - "80:80"
+    env_file:
+      - envs/secret.env
     environment:
       ESHOSTPORT: 'http://elasticsearch:9200'
       REDISHOST: 'redis'
@@ -24,7 +24,7 @@ services:
       - ./conf/es-kibana/prod/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - ./container-data/elasticsearch:/usr/share/elasticsearch/data
     environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ES_JAVA_OPTS: "-Xmx1g -Xms1g"
     networks:
       - searchtelegram
   kibana:
@@ -44,7 +44,7 @@ services:
     volumes:
       - ./container-data/redis:/data
     ports:
-      - "16379:6379"
+      - "6379:6379"
     networks:
       - searchtelegram
 
