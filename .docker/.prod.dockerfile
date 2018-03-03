@@ -19,7 +19,7 @@ RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh
 ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
 ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
-RUN make build
+RUN NODE_ENV=production make build
 
 FROM alpine:latest
 

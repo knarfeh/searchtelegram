@@ -41,7 +41,7 @@ if (isProduction) {
     })
   ]);
 
-  postCssLoader.splice(1, 1); // drop human readable names
+  // postCssLoader.splice(1, 1); // drop human readable names
 };
 
 const extractCSS = new ExtractTextPlugin('bundle1.css');
