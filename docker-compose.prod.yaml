@@ -8,8 +8,13 @@ services:
     ports:
       - "5000:5000"
       - "80:80"
+      - "443:443"
     env_file:
       - envs/secret.env
+    volumes:
+      - /var/www/searchtelegram.com:/le-root
+      - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
+      - /etc/letsencrypt:/etc/letsencrypt
     environment:
       ESHOSTPORT: 'http://elasticsearch:9200'
       REDISHOST: 'redis'

@@ -26,14 +26,15 @@ FROM alpine:latest
 EXPOSE 80 5000
 
 RUN apk update && \
-  apk --no-cache add ca-certificates supervisor nginx
+  apk --no-cache add ca-certificates supervisor nginx openssl
 
 WORKDIR /root/
 COPY --from=builder /go/bin/searchtelegram /bin/
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/*.sh /
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/supervisord.conf /etc/supervisord.conf
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/nginx.conf /etc/nginx/searchtelegram_nginx.conf
-RUN mkdir -p /var/log/supervisor /var/log/searchtelegram /tmp/images /var/nginx/cache/aws
+RUN mkdir -p /var/log/supervisor /var/log/searchtelegram /tmp/images /var/nginx/cache/aws /etc/letsencrypt/live/searchtelegram.com /etc/nginx/ssl/
+RUN openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 RUN chmod +x /*.sh
 
 CMD ["/searchtelegram.sh"]

@@ -7,3 +7,4 @@
 * add update page
 * google analysis
 * ads system
+* nginx except localhost
