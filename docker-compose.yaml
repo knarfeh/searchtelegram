@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: ./.docker/.dev.dockerfile
     volumes:
-      - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
+      - ./conf/nginx_nohttps.conf:/etc/nginx/searchtelegram_nginx.conf
       # - ./container-data/nginx/static/images:/media/images
       - ./server:/go/src/github.com/knarfeh/searchtelegram/server
       - ./client:/go/src/github.com/knarfeh/searchtelegram/client

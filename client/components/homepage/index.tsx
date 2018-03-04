@@ -2,6 +2,9 @@ import * as React from 'react';
 import * as lodash from 'lodash';
 import Helmet from 'react-helmet';
 import * as _ from 'lodash';
+import * as ReactGA from 'react-ga';
+
+
 import {
   SearchkitManager,SearchkitProvider,
   SearchBox, RefinementListFilter, Pagination,
@@ -107,6 +110,9 @@ export default class Homepage extends React.Component
 
     this.handleDelete = this.handleDelete.bind(this);
     this.handleAddition = this.handleAddition.bind(this);
+
+    ReactGA.initialize('UA-75002639-6');
+    ReactGA.pageview(window.location.pathname + window.location.search);
   }
 
   handleDelete(i) {

@@ -1,4 +1,7 @@
 FROM golang:1.8.3
+
+LABEL maintainer="Frank He <knarfeh@outlook.com>"
+
 WORKDIR /go/src/github.com/knarfeh/searchtelegram/
 COPY . /go/src/github.com/knarfeh/searchtelegram/
 COPY ./conf/nginx.conf /etc/nginx/searchtelegram_nginx.conf
