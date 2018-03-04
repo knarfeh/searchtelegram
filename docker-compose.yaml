@@ -1,7 +1,7 @@
 version: '2'
 services:
   searchtelegram:
-    image: daocloud.io/knarfeh/searchtelegram
+    image: daocloud.io/knarfeh/searchtelegramdev:latest
     build:
       context: .
       dockerfile: ./.docker/.dev.dockerfile

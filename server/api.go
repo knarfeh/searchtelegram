@@ -24,6 +24,7 @@ var OKResponse = map[string]interface{}{"ok": true}
 
 // Bind attaches api routes
 func (api *API) Bind(group *echo.Group) {
+	group.GET("/v1/ping", api.GetPingInfo)
 	group.PUT("/v1/tg", api.UpdateTgResource)
 	group.POST("/v1/tg", api.CreateTgResource)
 	group.GET("/v1/tg/:tgID", api.GetTgResource)
@@ -174,4 +175,9 @@ func (api *API) UpdateTgResource(c echo.Context) error {
 	}
 	app.Engine.Logger.Infof("New version of tgResource %q is now %d", updateResult.Id, updateResult.Version)
 	return c.JSON(http.StatusOK, updateResult)
+}
+
+// GetPingInfo return pong
+func (api *API) GetPingInfo(c echo.Context) error {
+	return c.JSON(http.StatusOK, "pong")
 }

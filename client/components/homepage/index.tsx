@@ -21,15 +21,14 @@ import { WithContext as ReactTags } from 'react-tag-input';
 import { ToastContainer, toast } from 'react-toastify';
 import '../../../node_modules/font-awesome/css/font-awesome.min.css';
 
-const host = "/"   // TODO: configurable
+const host = "https://searchtelegram.com"   // TODO: configurable
 const searchkit = new SearchkitManager(host)
 
 const HitsListItem = (props)=> {
   const {bemBlocks, result} = props
   let tDotMe = "https://t.me/" + result._source.tgid
-  let photoUrl = result._source.imgsrc
-  // let photoUrl = "http://localhost:18080" + result._source.imgsrc
-  // let photoUrl = "https://s3.amazonaws.com/searchtelegram/media/images/telegram.jpg"
+  // let photoUrl = result._source.imgsrc
+  let photoUrl = "https://searchtelegram.com" + result._source.imgsrc
   var sectionStyle = {
     width: "122px",
     height: "122px",
@@ -294,10 +293,6 @@ export default class Homepage extends React.Component
               <LayoutResults>
                 <ActionBar>
                   <ActionBarRow>
-                    <HitsStats translations={{
-                      "hitstats.results_found":"{hitCount} results were found"
-                    }}/>
-                    <ViewSwitcherToggle/>
                   </ActionBarRow>
                   <ActionBarRow>
                     <GroupedSelectedFilters/>
@@ -331,9 +326,9 @@ export default class Homepage extends React.Component
             </div>
             <div className="clearfix visible-sm visible-xs"><br/></div>
             <div className="col-xs-12 col-md-5 text-right">
-            Donate <a className="pointer" data-toggle="modal" data-target="btc" onClick={this.handleDonateClick} >BTC </a>
-              <a className="pointer" data-toggle="modal" data-target="eth" onClick={this.handleDonateClick}>ETH </a>
-              <a className="pointer" data-toggle="modal" data-target="ada" onClick={this.handleDonateClick}>ADA</a>
+            Donate <a className="pointer" data-toggle="modal" data-target="btc" onClick={this.handleDonateClick}>BTC </a> |
+              <a className="pointer" data-toggle="modal" data-target="eth" onClick={this.handleDonateClick}> ETH </a> |
+              <a className="pointer" data-toggle="modal" data-target="ada" onClick={this.handleDonateClick}> ADA</a>
             </div>
           </div>
           <Modal isOpen={this.state.showBTCPopup} onCancel={this.toggleBTCPopup} backdropClosesModal>
