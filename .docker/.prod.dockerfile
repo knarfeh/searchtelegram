@@ -1,5 +1,4 @@
 FROM golang:1.8.3 as builder
-
 LABEL maintainer="Frank He <knarfeh@outlook.com>"
 
 WORKDIR /go/src/github.com/knarfeh/searchtelegram/
@@ -70,7 +69,6 @@ ARG RESTY_CONFIG_OPTIONS_MORE=""
 
 # These are not intended to be user-specified
 ARG _RESTY_CONFIG_DEPS="--with-openssl=/tmp/openssl-${RESTY_OPENSSL_VERSION} --with-pcre=/tmp/pcre-${RESTY_PCRE_VERSION}"
-
 
 # 1) Install apk dependencies
 # 2) Download and untar OpenSSL, PCRE, and OpenResty

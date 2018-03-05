@@ -4,7 +4,6 @@ import Helmet from 'react-helmet';
 import * as _ from 'lodash';
 import * as ReactGA from 'react-ga';
 
-
 import {
   SearchkitManager,SearchkitProvider,
   SearchBox, RefinementListFilter, Pagination,

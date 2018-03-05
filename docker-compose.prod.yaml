@@ -13,7 +13,6 @@ services:
       - envs/secret.env
     volumes:
       - /var/www/searchtelegram.com:/le-root
-      - ./conf/nginx.conf:/etc/nginx/searchtelegram_nginx.conf
       - /etc/letsencrypt:/etc/letsencrypt
     environment:
       ESHOSTPORT: 'http://elasticsearch:9200'
