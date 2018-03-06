@@ -48,7 +48,7 @@ services:
     volumes:
       - ./container-data/redis:/data
     ports:
-      - "6379:6379"
+      - "16379:6379"
     networks:
       - searchtelegram
 
