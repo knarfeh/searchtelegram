@@ -37,7 +37,15 @@ type tgMeInfo struct {
 
 // CreateConsumer create consumer ...
 func CreateConsumer(esURL, redisHost, redisPort, accessKey, secretKey, region string) (*Hauler, error) {
-	es, _ := NewESClient(esURL, "", "", 3)
+	es, _ := NewESClient(
+		ElasticConfig{
+			Endpoint:           esURL,
+			Username:           "",
+			Password:           "",
+			Retries:            3,
+			HealthCheckTimeout: 3 * time.Second,
+		},
+	)
 	redisClient := NewRedisClient(redisHost, redisPort)
 	s3Client := NewS3Client(accessKey, secretKey, region)
 	return &Hauler{
@@ -57,7 +65,7 @@ func (hauler *Hauler) Query2ES() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Subscribe string: %s", substr)
+	fmt.Printf("Redis subscribe: %s\n", substr)
 
 	ch := pubsub.Channel()
 	for {
@@ -75,8 +83,12 @@ func (hauler *Hauler) handleQuery(query string) {
 		panic(err)
 	}
 
+	fmt.Printf("Got TgID: %s\n", tgResource.TgID)
+
 	if strings.HasPrefix(tgResource.TgID, "https://t.me/") {
 		tgResource.TgID = tgResource.TgID[13:]
+	} else if strings.HasPrefix(tgResource.TgID, "https://telegram.me/") {
+		tgResource.TgID = tgResource.TgID[20:]
 	} else if strings.HasPrefix(tgResource.TgID, "@") {
 		tgResource.TgID = tgResource.TgID[1:]
 	}

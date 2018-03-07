@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
+	"github.com/knarfeh/searchtelegram/server/diagnose"
 	"github.com/olebedev/config"
 )
 
@@ -55,8 +56,23 @@ func RunWorker(c *cli.Context) {
 	AWSACCESSKEY, _ := conf.String("AWSACCESSKEY")
 	AWSSECRETKEY, _ := conf.String("AWSSECRETKEY")
 	AWSREGION, _ := conf.String("AWSREGION")
-	fmt.Println("TODO, ping es, redis, aws")
-	fmt.Printf("%s, %s, %s, %s", AWSACCESSKEY, AWSSECRETKEY, AWSREGION, ESHOSTPORT)
-	hauler, _ := CreateConsumer(ESHOSTPORT, REDISHOST, REDISPORT, AWSACCESSKEY, AWSSECRETKEY, AWSREGION)
+
+	fmt.Println("Diagnose...")
+	hauler, _ := CreateConsumer(
+		ESHOSTPORT,
+		REDISHOST,
+		REDISPORT,
+		AWSACCESSKEY,
+		AWSSECRETKEY,
+		AWSREGION,
+	)
+	redisClient := hauler.redisClient
+	esClient := hauler.esClient
+	reporter, _ := diagnose.New()
+	reporter.Add(redisClient)
+	reporter.Add(esClient)
+	reporterResult := reporter.Check()
+	fmt.Println(reporterResult)
+
 	hauler.Query2ES()
 }

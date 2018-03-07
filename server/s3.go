@@ -20,7 +20,9 @@ func NewS3Client(accessKey, secretKey, region string) *S3Client {
 	creds := credentials.NewStaticCredentials(accessKey, secretKey, token)
 	_, err := creds.Get()
 	if err != nil {
-		fmt.Printf("bad credentials: %s", err)
+		fmt.Printf("bad credentials: %s\n", err)
+	} else {
+		fmt.Println("S3 is ok")
 	}
 	cfg := aws.NewConfig().WithRegion("us-east-1").WithCredentials(creds)
 	svc := s3.New(session.New(), cfg)

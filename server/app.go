@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/itsjamie/go-bindata-templates"
@@ -52,11 +52,18 @@ func NewApp(opts ...AppOptions) *App {
 	// in config constants
 	conf.Env()
 	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
-	es, _ := NewESClient(ESHOSTPORT, "", "", 3)
+	es, _ := NewESClient(
+		ElasticConfig{
+			Endpoint:           ESHOSTPORT,
+			Username:           "",
+			Password:           "",
+			Retries:            3,
+			HealthCheckTimeout: 3 * time.Second,
+		},
+	)
 
 	REDISHOST, _ := conf.String("REDISHOST")
 	REDISPORT, _ := conf.String("REDISPORT")
-	fmt.Printf("redis??? %s, %s", REDISHOST, REDISPORT)
 	redis := NewRedisClient(REDISHOST, REDISPORT)
 
 	// Make an engine
