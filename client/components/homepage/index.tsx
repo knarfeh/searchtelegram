@@ -293,7 +293,7 @@ export default class Homepage extends React.Component
             </TopBar>
             <LayoutBody>
               <SideBar>
-                <RefinementListFilter id="tags" title="tags" field="tags.name.keyword" operator="OR" size={10}/>
+                <RefinementListFilter id="tags" title="tags" field="tags.name.keyword" operator="OR" showCount={false} size={10}/>
               </SideBar>
               <LayoutResults>
                 <ActionBar>
@@ -320,7 +320,7 @@ export default class Homepage extends React.Component
         <div className="container">
           <div id="footer" className="row">
             <div className="col-xs-12 col-md-5">
-              <div> © 2018 <a href="https://github.com/knarfeh" target="_blank"> knarfeh </a> |
+              <div> © 2018 SearchTelegram |
                 <a href="mailto:knarfeh@outlook.com"> Email </a> |
                 <a href="https://github.com/knarfeh/searchtelegram" target="_blank"> Source </a> |
                 <a href="https://t.me/SearchTelegramPublic" target="_blank"> Telegram Group </a>
