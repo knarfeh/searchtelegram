@@ -1,10 +1,40 @@
-hash: 6d7745696f07a27b7d52d169cbf348fef9a9870e8aaf58614ded5a7b482c8318
-updated: 2018-02-24T16:16:58.382034376+08:00
+hash: 594b584e504fae29b96f14996c388f89286cc563560b3f0264a95822bf047d5a
+updated: 2018-03-18T16:53:24.561047263+08:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 901648c87902174f774fac311d7f176f8647bdaa
+- name: github.com/armon/go-radix
+  version: 1fca145dffbcaa8fe914309b1ec0cfc67500fe61
 - name: github.com/aws/aws-sdk-go
-  version: f7f1ee9550cc76ceea731d99c8dbe00a0c39f66d
+  version: f0872da8a448f8cb10f4f0c95c2100e4f7356448
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
+  - aws/credentials/stscreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/endpoints
+  - aws/request
+  - aws/session
+  - aws/signer/v4
+  - internal/sdkio
+  - internal/sdkrand
+  - internal/shareddefaults
+  - private/protocol
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/restxml
+  - private/protocol/xml/xmlutil
+  - service/s3
+  - service/sts
 - name: github.com/codegangsta/cli
   version: 75104e932ac2ddb944a6ea19d9f9f26316ff1145
 - name: github.com/dgrijalva/jwt-go
@@ -31,6 +61,8 @@ imports:
   version: 30f82fa23fd844bd5bb1e5f216db87fd77b5eb43
 - name: github.com/fatih/structs
   version: 253b866009f3c281655a29eb8a31bcd759a0dbdb
+- name: github.com/go-ini/ini
+  version: 6ecc596bd756a16c6e93e4ef9225ecdb9f54ed2c
 - name: github.com/go-playground/locales
   version: e4cbcb5d0652150d40ad0646651076b6bd2be4f6
   subpackages:
@@ -47,6 +79,8 @@ imports:
   - internal/proto
 - name: github.com/itsjamie/go-bindata-templates
   version: 78f87e838df0fb89dbcd26e1489f988cd7bc3bb8
+- name: github.com/jmespath/go-jmespath
+  version: c2b33e8439af944379acbdd9c3a5fe0bc44bd8a5
 - name: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 - name: github.com/labstack/echo
@@ -61,7 +95,7 @@ imports:
   - log
   - random
 - name: github.com/mailru/easyjson
-  version: 32fa128f234d041f196a9f3e0fea5ac9772c08e1
+  version: f594efddfa171111dc4349cd6e78e8f61dc7936f
   subpackages:
   - buffer
   - jlexer
@@ -70,6 +104,8 @@ imports:
   version: 6cc8b475d4682021d75d2cbe2bc481bec4ce98e5
 - name: github.com/mattn/go-isatty
   version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
+- name: github.com/mitchellh/hashstructure
+  version: 2bca23e0e452137f789efbc8610126fd8b94f73b
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
 - name: github.com/olebedev/config
@@ -97,7 +133,7 @@ imports:
   - acme
   - acme/autocert
 - name: golang.org/x/net
-  version: cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb
+  version: 24dd3780ca4f75fed9f321890729414a4b5d3f13
   subpackages:
   - html
   - html/atom
@@ -125,6 +161,8 @@ imports:
   subpackages:
   - config
   - uritemplates
+- name: gopkg.in/tucnak/telebot.v2
+  version: 00cebf376d79ee4363a11cd66fbbdf565452e0ab
 - name: gopkg.in/yaml.v2
   version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports: []

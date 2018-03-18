@@ -27,7 +27,7 @@ type TgTagBucket struct {
 	DocCount int32  `json:"doc_count"`
 }
 
-// Buckets ...
+// TgTagBuckets ...
 type TgTagBuckets struct {
 	Buckets []TgTagBucket `json:"buckets"`
 }
