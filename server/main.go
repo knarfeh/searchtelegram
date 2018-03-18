@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/knarfeh/searchtelegram/server/diagnose"
 	"github.com/olebedev/config"
+	tb "github.com/tucnak/telebot"
 )
 
 func main() {
@@ -31,6 +33,11 @@ func Run(args []string) {
 			Name:   "worker",
 			Usage:  "Runs worker",
 			Action: RunWorker,
+		},
+		{
+			Name:   "telebot",
+			Usage:  "Runs telegram bot",
+			Action: RunTelebot,
 		},
 	}
 	app.Run(args)
@@ -75,4 +82,29 @@ func RunWorker(c *cli.Context) {
 	fmt.Println(reporterResult)
 
 	hauler.Query2ES()
+}
+
+// RunTelebot ...
+func RunTelebot(c *cli.Context) {
+	conf, err := config.ParseYaml(confString)
+	conf.Env()
+	Must(err)
+
+	TGBOTTOKEN, _ := conf.String("TGBOTTOKEN")
+
+	b, err := tb.NewBot(tb.Settings{
+		Token:  TGBOTTOKEN,
+		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
+	})
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	b.Handle("/hello", func(m *tb.Message) {
+		b.Send(m.Sender, "hello world")
+	})
+
+	b.Start()
 }

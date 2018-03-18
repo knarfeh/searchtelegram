@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	telebot "gopkg.in/tucnak/telebot.v2"
-
 	"github.com/knarfeh/searchtelegram/server/domain"
 
 	"github.com/labstack/echo"
@@ -32,21 +30,6 @@ func (api *API) Bind(group *echo.Group) {
 	group.GET("/v1/tg/:tgID/exist", api.CheckTgResourceExist)
 	group.GET("/v1/search", api.SearchTgResource)
 	group.GET("/v1/tags", api.GetTgTags)
-	group.POST("/tgbot", api.TgBot)
-}
-
-// TgBot ...
-func (api *API) TgBot(c echo.Context) error {
-	app := c.Get("app").(*App)
-
-	tgUpdate := &telebot.Update{}
-	if err := c.Bind(tgUpdate); err != nil {
-		return err
-	}
-
-	app.Engine.Logger.Infof("Got message: %s", *tgUpdate)
-
-	return c.JSON(http.StatusOK, OKResponse)
 }
 
 // GetTgTags ...
