@@ -18,7 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/knarfeh/searchtelegram/server/domain"
 	"github.com/olebedev/config"
-	tb "github.com/tucnak/telebot"
+
+	tb "gopkg.in/tucnak/telebot.v2"
 
 	elastic "gopkg.in/olivere/elastic.v5"
 )

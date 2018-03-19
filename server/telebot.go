@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	tb "github.com/tucnak/telebot"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 // TeleBot encapsulation telebot, redis(for search)

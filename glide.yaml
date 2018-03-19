@@ -42,3 +42,4 @@ import:
 - package: github.com/tucnak/telebot
   version: ^1.0.0
 - package: github.com/mitchellh/hashstructure
+- package: gopkg.in/tucnak/telebot.v2
