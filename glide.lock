@@ -1,5 +1,5 @@
-hash: 594b584e504fae29b96f14996c388f89286cc563560b3f0264a95822bf047d5a
-updated: 2018-03-18T16:53:24.561047263+08:00
+hash: 3e3c6ae3c9b558f377eefc19755a9f1f961ce228273ff6164d0d3810ba909272
+updated: 2018-03-19T22:35:52.148533475+08:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 901648c87902174f774fac311d7f176f8647bdaa
@@ -123,6 +123,8 @@ imports:
   version: 09540e565986583836b5fc792fe951ec5fd201dd
 - name: github.com/technoweenie/multipartstreamer
   version: a90a01d73ae432e2611d178c18367fbaa13e0154
+- name: github.com/tucnak/telebot
+  version: 00cebf376d79ee4363a11cd66fbbdf565452e0ab
 - name: github.com/valyala/bytebufferpool
   version: e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7
 - name: github.com/valyala/fasttemplate
@@ -161,8 +163,6 @@ imports:
   subpackages:
   - config
   - uritemplates
-- name: gopkg.in/tucnak/telebot.v2
-  version: 00cebf376d79ee4363a11cd66fbbdf565452e0ab
 - name: gopkg.in/yaml.v2
   version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 testImports: []

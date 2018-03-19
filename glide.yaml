@@ -38,6 +38,7 @@ import:
   version: ^1.1.6
 - package: github.com/aws/aws-sdk-go
   version: ~1.13.4
-- package: gopkg.in/tucnak/telebot.v2
-  version: ^1.0.0
 - package: github.com/armon/go-radix
+- package: github.com/tucnak/telebot
+  version: ^1.0.0
+- package: github.com/mitchellh/hashstructure
