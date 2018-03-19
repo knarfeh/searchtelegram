@@ -17,6 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/knarfeh/searchtelegram/server/domain"
+	"github.com/olebedev/config"
+	tb "github.com/tucnak/telebot"
 
 	elastic "gopkg.in/olivere/elastic.v5"
 )
@@ -26,6 +28,8 @@ type Hauler struct {
 	esClient    *ESClient
 	redisClient *RedisClient
 	s3Client    *S3Client
+	tb          *tb.Bot
+	conf        *config.Config
 }
 
 type tgMeInfo struct {
@@ -36,22 +40,40 @@ type tgMeInfo struct {
 }
 
 // CreateConsumer create consumer ...
-func CreateConsumer(esURL, redisHost, redisPort, accessKey, secretKey, region string) (*Hauler, error) {
+func CreateConsumer(conf *config.Config) (*Hauler, error) {
+	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
+	REDISHOST, _ := conf.String("REDISHOST")
+	REDISPORT, _ := conf.String("REDISPORT")
+	AWSACCESSKEY, _ := conf.String("AWSACCESSKEY")
+	AWSSECRETKEY, _ := conf.String("AWSSECRETKEY")
+	AWSREGION, _ := conf.String("AWSREGION")
+	TGBOTTOKEN, _ := conf.String("TGBOTTOKEN")
 	es, _ := NewESClient(
 		ElasticConfig{
-			Endpoint:           esURL,
+			Endpoint:           ESHOSTPORT,
 			Username:           "",
 			Password:           "",
 			Retries:            3,
 			HealthCheckTimeout: 3 * time.Second,
 		},
 	)
-	redisClient := NewRedisClient(redisHost, redisPort)
-	s3Client := NewS3Client(accessKey, secretKey, region)
+	redisClient := NewRedisClient(REDISHOST, REDISPORT)
+	s3Client := NewS3Client(AWSACCESSKEY, AWSSECRETKEY, AWSREGION)
+
+	b, err := tb.NewBot(tb.Settings{
+		Token:  TGBOTTOKEN,
+		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	return &Hauler{
 		esClient:    es,
 		redisClient: redisClient,
 		s3Client:    s3Client,
+		tb:          b,
+		conf:        conf,
 	}, nil
 }
 
@@ -117,6 +139,31 @@ func (hauler *Hauler) handleQuery(query string) {
 	_, err = hauler.esClient.Client.Index().OpType("create").Index("telegram").Type("resource").Id(tgID).BodyJson(tgResource).Do(context.TODO())
 	hauler.redisClient.Client.Set("tgid:"+tgID, "1", 0)
 
+	channelName, _ := hauler.conf.String("TGCHANNELNAME")
+	stChannel := &tb.Chat{
+		Type:     tb.ChatChannel,
+		Username: channelName,
+	}
+	description := tgResource.Desc
+	if description == "" {
+		description = "None"
+	}
+	tagsString := hauler.tags2String(tgResource.Tags)
+	// Copy from https://emojifinder.com/
+	typeEmoji := ""
+	switch tgResource.Type {
+	case "bot":
+		typeEmoji = "🤖"
+	case "channel":
+		typeEmoji = "🔊"
+	case "group":
+		typeEmoji = "👥"
+	case "people":
+		typeEmoji = "👤"
+	}
+	channelMessage := "\n[New " + typeEmoji + "]\n@" + tgResource.TgID + "\n\nType: " + tgResource.Type + "\nDescription: " + description + "\nTags: " + tagsString
+	hauler.tb.Send(stChannel, channelMessage)
+
 	if err != nil {
 		// Please make sure domain not exist
 		e, _ := err.(*elastic.Error)
@@ -130,6 +177,15 @@ func (hauler *Hauler) handleQuery(query string) {
 		// Should not happen...
 		// panic(err)
 	}
+}
+
+// tags2String ...
+func (hauler *Hauler) tags2String(tags []domain.Tag) string {
+	result := ""
+	for _, entry := range tags {
+		result = result + "#" + entry.Name + " "
+	}
+	return result
 }
 
 // rmDuplicateTags remove duplicate tags

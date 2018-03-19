@@ -1,26 +1,93 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"time"
 
 	tb "github.com/tucnak/telebot"
 )
 
-func testss() {
+// TeleBot encapsulation telebot, redis(for search)
+type TeleBot struct {
+	tb          *tb.Bot
+	redisClient *RedisClient
+}
+
+// CreateTeleBot create Telebot
+func CreateTeleBot(tgBotToken, redisHost, redisPort string) (*TeleBot, error) {
 	b, err := tb.NewBot(tb.Settings{
-		Token:  "TODO",
+		Token:  tgBotToken,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+	}
+	redisClient := NewRedisClient(redisHost, redisPort)
+
+	telebot := &TeleBot{
+		tb:          b,
+		redisClient: redisClient,
+	}
+
+	b.Handle("/ping", telebot.pong)
+	b.Handle("/detail", telebot.detail)
+	b.Handle("/search", telebot.search)
+	b.Handle("/search_group", telebot.searchGroup)
+	b.Handle("/search_bot", telebot.searchBot)
+	b.Handle("/search_channel", telebot.searchChannel)
+	b.Handle("/search_people", telebot.searchChannel)
+
+	return telebot, nil
+}
+
+func (telebot *TeleBot) pong(m *tb.Message) {
+	if m.Sender.Username != "knarfeh" {
 		return
 	}
 
-	b.Handle("/hello", func(m *tb.Message) {
-		b.Send(m.Sender, "hello world")
-	})
+	stChannel := &tb.Chat{
+		Type:     tb.ChatChannel,
+		Username: "searchtelegramchannel",
+	}
+	telebot.tb.Send(stChannel, "send to channel")
 
-	b.Start()
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "pong "+m.Payload)
+}
+
+func (telebot *TeleBot) detail(m *tb.Message) {
+	// get detail of an tg_ID
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "TODO")
+}
+
+func (telebot *TeleBot) search(m *tb.Message) {
+	// search group balabala
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "TODO")
+}
+
+func (telebot *TeleBot) searchGroup(m *tb.Message) {
+	// search balabala
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "TODO")
+}
+
+func (telebot *TeleBot) searchBot(m *tb.Message) {
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "TODO")
+}
+
+func (telebot *TeleBot) searchChannel(m *tb.Message) {
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "TODO")
+}
+
+func (telebot *TeleBot) top(m *tb.Message) {
+	// top group day
+	// top bot week
+	// top channel month
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "TODO")
 }

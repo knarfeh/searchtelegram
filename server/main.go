@@ -3,12 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/knarfeh/searchtelegram/server/diagnose"
 	"github.com/olebedev/config"
-	tb "github.com/tucnak/telebot"
 )
 
 func main() {
@@ -57,21 +55,10 @@ func RunWorker(c *cli.Context) {
 	conf, err := config.ParseYaml(confString)
 	conf.Env()
 	Must(err)
-	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
-	REDISHOST, _ := conf.String("REDISHOST")
-	REDISPORT, _ := conf.String("REDISPORT")
-	AWSACCESSKEY, _ := conf.String("AWSACCESSKEY")
-	AWSSECRETKEY, _ := conf.String("AWSSECRETKEY")
-	AWSREGION, _ := conf.String("AWSREGION")
 
 	fmt.Println("Diagnose...")
 	hauler, _ := CreateConsumer(
-		ESHOSTPORT,
-		REDISHOST,
-		REDISPORT,
-		AWSACCESSKEY,
-		AWSSECRETKEY,
-		AWSREGION,
+		conf,
 	)
 	redisClient := hauler.redisClient
 	esClient := hauler.esClient
@@ -82,6 +69,7 @@ func RunWorker(c *cli.Context) {
 	fmt.Println(reporterResult)
 
 	hauler.Query2ES()
+	hauler.tb.Start()
 }
 
 // RunTelebot ...
@@ -91,20 +79,18 @@ func RunTelebot(c *cli.Context) {
 	Must(err)
 
 	TGBOTTOKEN, _ := conf.String("TGBOTTOKEN")
+	REDISHOST, _ := conf.String("REDISHOST")
+	REDISPORT, _ := conf.String("REDISPORT")
 
-	b, err := tb.NewBot(tb.Settings{
-		Token:  TGBOTTOKEN,
-		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
-	})
+	tgBot, _ := CreateTeleBot(TGBOTTOKEN, REDISHOST, REDISPORT)
 
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	redisClient := tgBot.redisClient
+	reporter, _ := diagnose.New()
+	reporter.Add(redisClient)
 
-	b.Handle("/hello", func(m *tb.Message) {
-		b.Send(m.Sender, "hello world")
-	})
+	reporterResult := reporter.Check()
+	fmt.Println(reporterResult)
 
-	b.Start()
+	tgBot.tb.Start()
+
 }

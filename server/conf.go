@@ -25,6 +25,7 @@ AWSACCESSKEY:
 AWSSECRETKEY:
 AWSREGION:
 TGBOTTOKEN:
+TGCHANNELNAME: searchtelegramchannel
 api:
   prefix: /api
 duktape:
