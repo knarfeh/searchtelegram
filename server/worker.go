@@ -107,21 +107,14 @@ func (hauler *Hauler) handleQuery(query string) {
 	}
 
 	fmt.Printf("Got TgID: %s\n", tgResource.TgID)
-
-	if strings.HasPrefix(tgResource.TgID, "https://t.me/") {
-		tgResource.TgID = tgResource.TgID[13:]
-	} else if strings.HasPrefix(tgResource.TgID, "https://telegram.me/") {
-		tgResource.TgID = tgResource.TgID[20:]
-	} else if strings.HasPrefix(tgResource.TgID, "@") {
-		tgResource.TgID = tgResource.TgID[1:]
-	}
+	tgResource.TgID = hauler.getRealtgID(tgResource.TgID)
 	tgID := tgResource.TgID
 	tgInfo, err := hauler.getData(tgID)
 	if err != nil {
 		fmt.Printf("Got error when getting data from t.me, error: %s\n", err.Error())
 		return
 	}
-	fmt.Printf("tgInfo: %s\n", tgInfo)
+	fmt.Printf("tgInfo, tgID: %s, tgType: %s\n", tgInfo.Title, tgInfo.Type)
 
 	tgResource.Title = tgInfo.Title
 	tgResource.Type = tgInfo.Type
@@ -139,7 +132,37 @@ func (hauler *Hauler) handleQuery(query string) {
 	}
 	_, err = hauler.esClient.Client.Index().OpType("create").Index("telegram").Type("resource").Id(tgID).BodyJson(tgResource).Do(context.TODO())
 	hauler.redisClient.Client.Set("tgid:"+tgID, "1", 0)
+	hauler.send2stChannel(*tgResource)
 
+	if err != nil {
+		// Please make sure domain not exist
+		e, _ := err.(*elastic.Error)
+		if e.Status == 409 {
+			errorItem := make(map[string]string)
+			errorItem["code"] = "resource_already_exist"
+			errorItem["message"] = e.Details.Reason
+			errorItem["source"] = "10001"
+			fmt.Println("Conflict, dont panic, error: ", errorItem)
+		}
+		// Should not happen...
+		// panic(err)
+	}
+}
+
+// getRealtgID ...
+func (hauler *Hauler) getRealtgID(tgID string) string {
+	if strings.HasPrefix(tgID, "https://t.me/") {
+		return tgID[13:]
+	} else if strings.HasPrefix(tgID, "https://telegram.me/") {
+		return tgID[20:]
+	} else if strings.HasPrefix(tgID, "@") {
+		return tgID[1:]
+	}
+	return tgID
+}
+
+// send2stChannel ...
+func (hauler *Hauler) send2stChannel(tgResource domain.TgResource) {
 	channelName, _ := hauler.conf.String("TGCHANNELNAME")
 	stChannel := &tb.Chat{
 		Type:     tb.ChatChannel,
@@ -164,20 +187,6 @@ func (hauler *Hauler) handleQuery(query string) {
 	}
 	channelMessage := "\n[New " + typeEmoji + "]\n@" + tgResource.TgID + "\n\nType: " + tgResource.Type + "\nDescription: " + description + "\nTags: " + tagsString
 	hauler.tb.Send(stChannel, channelMessage)
-
-	if err != nil {
-		// Please make sure domain not exist
-		e, _ := err.(*elastic.Error)
-		if e.Status == 409 {
-			errorItem := make(map[string]string)
-			errorItem["code"] = "resource_already_exist"
-			errorItem["message"] = e.Details.Reason
-			errorItem["source"] = "10001"
-			fmt.Println("Conflict, dont panic, error: ", errorItem)
-		}
-		// Should not happen...
-		// panic(err)
-	}
 }
 
 // tags2String ...
@@ -203,14 +212,17 @@ func (hauler *Hauler) rmDuplicateTags(tags []domain.Tag) []domain.Tag {
 }
 
 // getTgType ...
-func (hauler *Hauler) getTgType(content string) string {
+func (hauler *Hauler) getTgType(content, tgID string) string {
 	if strings.Contains(content, "GROUP") {
 		return "group"
 	}
 	if strings.Contains(content, "CHANNEL") {
 		return "channel"
 	}
-	return "unknown"
+	if strings.HasSuffix(tgID, "BOT") {
+		return "bot"
+	}
+	return "people"
 }
 
 // downloadPic ...
@@ -286,15 +298,7 @@ func (hauler *Hauler) getData(tgID string) (*tgMeInfo, error) {
 	description := strings.TrimSpace(doc.Find(".tgme_page_description").Text())
 	imgSrc, _ := doc.Find(".tgme_page_photo_image").Attr("src")
 	buttonContent := doc.Find(".tgme_action_button_new").Text()
-	tgType := hauler.getTgType(strings.ToUpper(buttonContent))
-
-	if tgType == "unknown" {
-		if strings.HasSuffix(strings.ToUpper(tgID), "BOT") {
-			tgType = "bot"
-		} else {
-			tgType = "people"
-		}
-	}
+	tgType := hauler.getTgType(strings.ToUpper(buttonContent), strings.ToUpper(tgID))
 
 	imgPath := ""
 	if imgSrc != "" {
