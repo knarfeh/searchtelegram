@@ -1,40 +1,109 @@
-hash: 608fb4652edc04bc801db19037e7d196bbe6605ddf614760aee4789c9566c6c8
-updated: 2018-03-20T16:27:14.549819604+08:00
+hash: 14ca48e76bbe6fd015c8e19834164f777c6ecdecfb5d665a752344bcb43fc757
+updated: 2018-03-20T18:20:43.795821618+08:00
 imports:
+- name: github.com/andybalholm/cascadia
+  version: 901648c87902174f774fac311d7f176f8647bdaa
 - name: github.com/armon/go-radix
   version: 1fca145dffbcaa8fe914309b1ec0cfc67500fe61
 - name: github.com/aws/aws-sdk-go
   version: f0872da8a448f8cb10f4f0c95c2100e4f7356448
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
+  - aws/credentials/stscreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/endpoints
+  - aws/request
+  - aws/session
+  - aws/signer/v4
+  - internal/sdkio
+  - internal/sdkrand
+  - internal/shareddefaults
+  - private/protocol
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/restxml
+  - private/protocol/xml/xmlutil
+  - service/s3
+  - service/sts
 - name: github.com/codegangsta/cli
   version: 75104e932ac2ddb944a6ea19d9f9f26316ff1145
 - name: github.com/dgrijalva/jwt-go
   version: dbeaa9332f19a944acb5736b4456cfcc02140e29
 - name: github.com/dlclark/regexp2
   version: 487489b64fb796de2e55f4e8a4ad1e145f80e957
+  subpackages:
+  - syntax
 - name: github.com/dop251/goja
   version: eab79f83e840f5294250a3988a8037c476c9cdae
+  subpackages:
+  - ast
+  - file
+  - parser
+  - token
 - name: github.com/dop251/goja_nodejs
   version: adff31b136e6b7e044712aab7236a775e1bd085e
   subpackages:
+  - console
   - eventloop
+  - require
+  - util
 - name: github.com/elazarl/go-bindata-assetfs
   version: 30f82fa23fd844bd5bb1e5f216db87fd77b5eb43
 - name: github.com/fatih/structs
   version: 253b866009f3c281655a29eb8a31bcd759a0dbdb
+- name: github.com/go-ini/ini
+  version: 6ecc596bd756a16c6e93e4ef9225ecdb9f54ed2c
+- name: github.com/go-playground/locales
+  version: e4cbcb5d0652150d40ad0646651076b6bd2be4f6
+  subpackages:
+  - currency
 - name: github.com/go-playground/universal-translator
   version: b32fa301c9fe55953584134cb6853a13c87ec0a1
 - name: github.com/go-redis/redis
   version: 8b4fa6d443e35ca8b1c37be877285252430b06a3
+  subpackages:
+  - internal
+  - internal/consistenthash
+  - internal/hashtag
+  - internal/pool
+  - internal/proto
 - name: github.com/itsjamie/go-bindata-templates
   version: 78f87e838df0fb89dbcd26e1489f988cd7bc3bb8
+- name: github.com/jmespath/go-jmespath
+  version: c2b33e8439af944379acbdd9c3a5fe0bc44bd8a5
 - name: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
 - name: github.com/labstack/echo
   version: b6040409eeceaac178c95fe73498b5f992e6b668
   subpackages:
   - middleware
+- name: github.com/labstack/gommon
+  version: 3bc2d333a4c30531c47051369043bcabd62ff4c0
+  subpackages:
+  - bytes
+  - color
+  - log
+  - random
 - name: github.com/mailru/easyjson
   version: f594efddfa171111dc4349cd6e78e8f61dc7936f
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/mattn/go-colorable
+  version: efa589957cd060542a26d2dd7832fd6a6c6c3ade
+- name: github.com/mattn/go-isatty
+  version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mitchellh/hashstructure
   version: 2bca23e0e452137f789efbc8610126fd8b94f73b
 - name: github.com/nu7hatch/gouuid
@@ -45,20 +114,59 @@ imports:
   version: bb153be84336f26925890502929cc363477df7ad
   subpackages:
   - fetch
+  - fetch/internal/data
 - name: github.com/olebedev/on
   version: f65b7c9823a4c30797e9ad3c51d559a36ff8d542
+- name: github.com/pkg/errors
+  version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 - name: github.com/PuerkitoBio/goquery
   version: 09540e565986583836b5fc792fe951ec5fd201dd
 - name: github.com/technoweenie/multipartstreamer
   version: a90a01d73ae432e2611d178c18367fbaa13e0154
 - name: github.com/tucnak/telebot
   version: 24146200389c0856503e7f9a40d21170e55692a2
+- name: github.com/valyala/bytebufferpool
+  version: e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7
+- name: github.com/valyala/fasttemplate
+  version: dcecefd839c4193db0d35b88ec65b4c12d360ab0
+- name: golang.org/x/crypto
+  version: c3a3ad6d03f7a915c0f7e194b7152974bb73d287
+  subpackages:
+  - acme
+  - acme/autocert
+- name: golang.org/x/net
+  version: 92b859f39abd2d91a854c9f9c4621b2f5054a92d
+  subpackages:
+  - html
+  - html/atom
+- name: golang.org/x/sys
+  version: d8e400bc7db4870d786864138af681469693d18c
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: 8c34f848e18c4bd34d02db7f19a0ed1a0a8f5852
+  subpackages:
+  - cases
+  - collate
+  - internal
+  - internal/colltab
+  - internal/language
+  - internal/language/compact
+  - internal/tag
+  - language
+  - transform
+  - unicode/norm
 - name: gopkg.in/go-playground/assert.v1
   version: 4f4dfbc7d1c48336cf93399deae81aa9067e88af
 - name: gopkg.in/go-playground/validator.v9
   version: 3620d3c0694119b61c72071ff5a05a976e97b05a
 - name: gopkg.in/olivere/elastic.v5
   version: 1094ee281ca61a783c9ba22bf86e7e0a8aa2d112
+  subpackages:
+  - config
+  - uritemplates
 - name: gopkg.in/tucnak/telebot.v2
   version: 00cebf376d79ee4363a11cd66fbbdf565452e0ab
+- name: gopkg.in/yaml.v2
+  version: 7f97868eec74b32b0982dd158a51a446d1da7eb5
 testImports: []

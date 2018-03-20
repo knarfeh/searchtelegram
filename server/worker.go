@@ -167,34 +167,10 @@ func (hauler *Hauler) send2stChannel(tgResource domain.TgResource) {
 		Type:     tb.ChatChannel,
 		Username: channelName,
 	}
-	description := tgResource.Desc
-	if description == "" {
-		description = "None"
-	}
-	tagsString := hauler.tags2String(tgResource.Tags)
-	// Copy from https://emojifinder.com/
-	typeEmoji := ""
-	switch tgResource.Type {
-	case "bot":
-		typeEmoji = "🤖"
-	case "channel":
-		typeEmoji = "🔊"
-	case "group":
-		typeEmoji = "👥"
-	case "people":
-		typeEmoji = "👤"
-	}
-	channelMessage := "\n[New " + typeEmoji + "]\n@" + tgResource.TgID + "\n\nType: " + tgResource.Type + "\nDescription: " + description + "\nTags: " + tagsString
-	hauler.tb.Send(stChannel, channelMessage)
-}
 
-// tags2String ...
-func (hauler *Hauler) tags2String(tags []domain.Tag) string {
-	result := ""
-	for _, entry := range tags {
-		result = result + "#" + entry.Name + " "
-	}
-	return result
+	message, emoji := TgResource2Str(tgResource)
+	channelMessage := "\n🆕 " + emoji + "\n \n @" + message
+	hauler.tb.Send(stChannel, channelMessage)
 }
 
 // rmDuplicateTags remove duplicate tags

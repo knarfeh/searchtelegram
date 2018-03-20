@@ -55,10 +55,8 @@ func RunWorker(c *cli.Context) {
 	conf, err := config.ParseYaml(confString)
 	conf.Env()
 	Must(err)
+	hauler, _ := CreateConsumer(conf)
 
-	hauler, _ := CreateConsumer(
-		conf,
-	)
 	fmt.Println("Diagnose...")
 	redisClient := hauler.redisClient
 	esClient := hauler.esClient
@@ -78,16 +76,14 @@ func RunTelebot(c *cli.Context) {
 	conf.Env()
 	Must(err)
 
-	TGBOTTOKEN, _ := conf.String("TGBOTTOKEN")
-	REDISHOST, _ := conf.String("REDISHOST")
-	REDISPORT, _ := conf.String("REDISPORT")
-
-	tgBot, _ := CreateTeleBot(TGBOTTOKEN, REDISHOST, REDISPORT)
+	tgBot, _ := CreateTeleBot(conf)
 
 	fmt.Println("Diagnose...")
 	redisClient := tgBot.redisClient
+	esClient := tgBot.esClient
 	reporter, _ := diagnose.New()
 	reporter.Add(redisClient) // TODO: add telebot Client???
+	reporter.Add(esClient)
 	reporterResult := reporter.Check()
 	fmt.Println(reporterResult)
 

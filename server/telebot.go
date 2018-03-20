@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/knarfeh/searchtelegram/server/domain"
+	"github.com/olebedev/config"
 
 	tb "github.com/tucnak/telebot"
 )
@@ -14,28 +16,43 @@ import (
 type TeleBot struct {
 	tb          *tb.Bot
 	redisClient *RedisClient
+	esClient    *ESClient
 }
 
 // CreateTeleBot create Telebot
-func CreateTeleBot(tgBotToken, redisHost, redisPort string) (*TeleBot, error) {
+func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
+	ESHOSTPORT, _ := conf.String("ESHOSTPORT")
+	REDISHOST, _ := conf.String("REDISHOST")
+	REDISPORT, _ := conf.String("REDISPORT")
+	TGBOTTOKEN, _ := conf.String("TGBOTTOKEN")
+	es, _ := NewESClient(
+		ElasticConfig{
+			Endpoint:           ESHOSTPORT,
+			Username:           "",
+			Password:           "",
+			Retries:            3,
+			HealthCheckTimeout: 3 * time.Second,
+		},
+	)
 	b, err := tb.NewBot(tb.Settings{
-		Token:  tgBotToken,
+		Token:  TGBOTTOKEN,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 
 	if err != nil {
 		fmt.Println(err)
 	}
-	redisClient := NewRedisClient(redisHost, redisPort)
+	redisClient := NewRedisClient(REDISHOST, REDISPORT)
 
 	telebot := &TeleBot{
+		esClient:    es,
 		tb:          b,
 		redisClient: redisClient,
 	}
 
 	b.Handle("/ping", telebot.pong)
 	b.Handle("/start", telebot.start)
-	b.Handle("/detail", telebot.detail)
+	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)
 	b.Handle("/search", telebot.search)
 	b.Handle("/search_group", telebot.searchGroup)
@@ -53,16 +70,22 @@ func (telebot *TeleBot) start(m *tb.Message) {
 	telebot.tb.Send(m.Sender, "start, TODO")
 }
 
-func (telebot *TeleBot) detail(m *tb.Message) {
-	// get detail of an tg_ID
-	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "detail, TODO")
+// get detail of an tg_ID
+func (telebot *TeleBot) get(m *tb.Message) {
+	fmt.Printf("[detail]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
+	// TODO, get from redis first ... handle not exist
+	resourceResult, _ := telebot.esClient.Client.Get().Index("telegram").Type("resource").Id(m.Payload).Do(context.TODO())
+	tgResource := domain.NewTgResource()
+	json.Unmarshal(*resourceResult.Source, tgResource)
+
+	message, emoji := TgResource2Str(*tgResource)
+	channelMessage := "\n" + emoji + "\n \n @" + message
+	telebot.tb.Send(m.Sender, channelMessage)
 }
 
 // submit new group, channel, bot
 func (telebot *TeleBot) submit(m *tb.Message) {
 	fmt.Printf("[submit]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
-
 	if m.Payload == "" {
 		telebot.tb.Send(m.Sender, "Please input telegram ID, like: /submit telegram")
 		return
@@ -70,7 +93,7 @@ func (telebot *TeleBot) submit(m *tb.Message) {
 	tgResource := domain.NewTgResource()
 	tgResource.TgID = m.Payload
 	tgResouceString, _ := json.Marshal(tgResource)
-	fmt.Printf("Create tg resource: %s\n", tgResouceString)
+	fmt.Printf("Telegram, %s submit resource: %s\n", m.Sender.Username, tgResouceString)
 	err := telebot.redisClient.Client.Publish("searchtelegram", string(tgResouceString)).Err()
 	if err != nil {
 		panic(err)
