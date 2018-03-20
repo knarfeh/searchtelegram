@@ -3,34 +3,31 @@ package telebot
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"regexp"
 	"strconv"
-	"time"
+	"strings"
 
-	"github.com/armon/go-radix"
 	"github.com/pkg/errors"
 )
 
-// Bot represents a separate Telegram bot instance.
-type Bot struct {
-	Token     string
-	Identity  User
-	Messages  chan Message
-	Queries   chan Query
-	Callbacks chan Callback
-
-	// Telebot debugging channel. If present, Telebot
-	// will use it to report all occuring errors.
-	Errors chan error
-
-	tree *radix.Tree
-}
-
 // NewBot does try to build a Bot with token `token`, which
 // is a secret API key assigned to particular bot.
-func NewBot(token string) (*Bot, error) {
+func NewBot(pref Settings) (*Bot, error) {
+	if pref.Updates == 0 {
+		pref.Updates = 100
+	}
+
 	bot := &Bot{
-		Token: token,
-		tree:  radix.New(),
+		Token:   pref.Token,
+		Updates: make(chan Update, pref.Updates),
+		Poller:  pref.Poller,
+
+		handlers: make(map[string]interface{}),
+		stop:     make(chan struct{}),
+		reporter: pref.Reporter,
 	}
 
 	user, err := bot.getMe()
@@ -38,473 +35,659 @@ func NewBot(token string) (*Bot, error) {
 		return nil, err
 	}
 
-	bot.Identity = user
+	bot.Me = user
 	return bot, nil
 }
 
-// Listen starts a new polling goroutine, one that periodically looks for
-// updates and delivers new messages to the subscription channel.
-func (b *Bot) Listen(subscription chan Message, timeout time.Duration) {
-	go b.poll(subscription, nil, nil, timeout)
+// Bot represents a separate Telegram bot instance.
+type Bot struct {
+	Me      *User
+	Token   string
+	Updates chan Update
+	Poller  Poller
+
+	handlers map[string]interface{}
+	reporter func(error)
+	stop     chan struct{}
 }
 
-// Start periodically polls messages, updates and callbacks into their
-// corresponding channels of the bot object.
+// Settings represents a utility struct for passing certain
+// properties of a bot around and is required to make bots.
+type Settings struct {
+	// Telegram token
+	Token string
+
+	// Updates channel capacity
+	Updates int // Default: 100
+
+	// Poller is the provider of Updates.
+	Poller Poller
+
+	// Reporter is a callback function that will get called
+	// on any panics recovered from endpoint handlers.
+	Reporter func(error)
+}
+
+// Update object represents an incoming update.
+type Update struct {
+	ID int `json:"update_id"`
+
+	Message           *Message  `json:"message,omitempty"`
+	EditedMessage     *Message  `json:"edited_message,omitempty"`
+	ChannelPost       *Message  `json:"channel_post,omitempty"`
+	EditedChannelPost *Message  `json:"edited_channel_post,omitempty"`
+	Callback          *Callback `json:"callback_query,omitempty"`
+	Query             *Query    `json:"inline_query,omitempty"`
+
+	ChosenInlineResult *ChosenInlineResult `json:"chosen_inline_result,omitempty"`
+}
+
+// ChosenInlineResult represents a result of an inline query that was chosen
+// by the user and sent to their chat partner.
+type ChosenInlineResult struct {
+	ResultID string `json:"result_id"`
+	Query    string `json:"query"`
+	// Inline messages only!
+	MessageID string `json:"inline_message_id"`
+
+	From     User      `json:"from"`
+	Location *Location `json:"location,omitempty"`
+}
+
+// Handle lets you set the handler for some command name or
+// one of the supported endpoints.
 //
-// NOTE: It's a blocking method!
-func (b *Bot) Start(timeout time.Duration) {
-	b.poll(b.Messages, b.Queries, b.Callbacks, timeout)
-}
-
-func (b *Bot) debug(err error) {
-	if b.Errors != nil {
-		b.Errors <- errors.WithStack(err)
+// Example:
+//
+//     b.handle("/help", func (m *tb.Message) {})
+//     b.handle(tb.OnEdited, func (m *tb.Message) {})
+//     b.handle(tb.OnQuery, func (q *tb.Query) {})
+//
+//     // make a hook for one of your preserved (by-pointer)
+//     // inline buttons.
+//     b.handle(&inlineButton, func (c *tb.Callback) {})
+//
+func (b *Bot) Handle(endpoint interface{}, handler interface{}) {
+	switch end := endpoint.(type) {
+	case string:
+		b.handlers[end] = handler
+	case CallbackEndpoint:
+		b.handlers[end.CallbackUnique()] = handler
+	default:
+		panic("telebot: unsupported endpoint")
 	}
 }
 
-func (b *Bot) poll(
-	messages chan Message,
-	queries chan Query,
-	callbacks chan Callback,
-	timeout time.Duration,
-) {
-	var latestUpdate int64
+var (
+	cmdRx   = regexp.MustCompile(`^(\/\w+)(@(\w+))?(\s|$)(.+)?`)
+	cbackRx = regexp.MustCompile(`^\f(\w+)(\|(.+))?$`)
+)
+
+func (b *Bot) handleCommand(m *Message, cmdName, cmdBot string) bool {
+
+	return false
+}
+
+// Start brings bot into motion by consuming incoming
+// updates (see Bot.Updates channel).
+func (b *Bot) Start() {
+	if b.Poller == nil {
+		panic("telebot: can't start without a poller")
+	}
+
+	stopPoller := make(chan struct{})
+
+	go b.Poller.Poll(b, b.Updates, stopPoller)
 
 	for {
-		updates, err := b.getUpdates(latestUpdate+1, timeout)
+		select {
+		// handle incoming updates
+		case upd := <-b.Updates:
+			b.incomingUpdate(&upd)
 
-		if err != nil {
-			b.debug(errors.Wrap(err, "getUpdates() failed"))
-			continue
+		// call to stop polling
+		case <-b.stop:
+			stopPoller <- struct{}{}
+
+		// polling has stopped
+		case <-stopPoller:
+			return
+		}
+	}
+}
+
+func (b *Bot) incomingUpdate(upd *Update) {
+	if upd.Message != nil {
+		m := upd.Message
+
+		if m.PinnedMessage != nil {
+			b.handle(OnPinned, m)
+			return
 		}
 
-		for _, update := range updates {
-			if update.Payload != nil /* if message */ {
-				if messages == nil {
-					continue
-				}
-
-				messages <- *update.Payload
-			} else if update.Query != nil /* if query */ {
-				if queries == nil {
-					continue
-				}
-
-				queries <- *update.Query
-			} else if update.Callback != nil {
-				if callbacks == nil {
-					continue
-				}
-
-				callbacks <- *update.Callback
+		// Commands
+		if m.Text != "" {
+			// Filtering malicious messsages
+			if m.Text[0] == '\a' {
+				return
 			}
 
-			latestUpdate = update.ID
+			match := cmdRx.FindAllStringSubmatch(m.Text, -1)
+
+			// Command found - handle and return
+			if match != nil {
+				// Syntax: "</command>@<bot> <payload>"
+				command, botName := match[0][1], match[0][3]
+				m.Payload = match[0][5]
+
+				if botName != "" && !strings.EqualFold(b.Me.Username, botName) {
+					return
+				}
+
+				if b.handle(command, m) {
+					return
+				}
+			}
+
+			// 1:1 satisfaction
+			if b.handle(m.Text, m) {
+				return
+			}
+
+			// OnText
+			b.handle(OnText, m)
+			return
 		}
+
+		// on media
+		if b.handleMedia(m) {
+			return
+		}
+
+		// OnAddedToGroup
+		wasAdded := (m.UserJoined != nil && m.UserJoined.ID == b.Me.ID) ||
+			(m.UsersJoined != nil && isUserInList(b.Me, m.UsersJoined))
+		if m.GroupCreated || m.SuperGroupCreated || wasAdded {
+			b.handle(OnAddedToGroup, m)
+			return
+		}
+
+		if m.UserJoined != nil {
+			b.handle(OnUserJoined, m)
+			return
+		}
+
+		if m.UsersJoined != nil {
+			for _, user := range m.UsersJoined {
+				m.UserJoined = &user
+				b.handle(OnUserJoined, m)
+			}
+
+			return
+		}
+
+		if m.UserLeft != nil {
+			b.handle(OnUserLeft, m)
+			return
+		}
+
+		if m.NewGroupTitle != "" {
+			b.handle(OnNewGroupTitle, m)
+			return
+		}
+
+		if m.NewGroupPhoto != nil {
+			b.handle(OnNewGroupPhoto, m)
+			return
+		}
+
+		if m.GroupPhotoDeleted {
+			b.handle(OnGroupPhotoDeleted, m)
+			return
+		}
+
+		if m.MigrateTo != 0 {
+			if handler, ok := b.handlers[OnMigration]; ok {
+				if handler, ok := handler.(func(int64, int64)); ok {
+					// i'm not 100% sure that any of the values
+					// won't be cached, so I pass them all in:
+					go func(b *Bot, handler func(int64, int64), from, to int64) {
+						defer b.deferDebug()
+						handler(from, to)
+					}(b, handler, m.MigrateFrom, m.MigrateTo)
+
+				} else {
+					panic("telebot: migration handler is bad")
+				}
+			}
+
+			return
+		}
+
+		return
 	}
 
+	if upd.EditedMessage != nil {
+		b.handle(OnEdited, upd.EditedMessage)
+		return
+	}
+
+	if upd.ChannelPost != nil {
+		b.handle(OnChannelPost, upd.ChannelPost)
+		return
+	}
+
+	if upd.EditedChannelPost != nil {
+		b.handle(OnEditedChannelPost, upd.EditedChannelPost)
+		return
+	}
+
+	if upd.Callback != nil {
+		if upd.Callback.Data != "" {
+			data := upd.Callback.Data
+
+			if data[0] == '\f' {
+				match := cbackRx.FindAllStringSubmatch(data, -1)
+
+				if match != nil {
+					unique, payload := match[0][1], match[0][3]
+
+					if handler, ok := b.handlers["\f"+unique]; ok {
+						if handler, ok := handler.(func(*Callback)); ok {
+							upd.Callback.Data = payload
+							// i'm not 100% sure that any of the values
+							// won't be cached, so I pass them all in:
+							go func(b *Bot, handler func(*Callback), c *Callback) {
+								defer b.deferDebug()
+								handler(c)
+							}(b, handler, upd.Callback)
+
+							return
+						}
+					}
+
+				}
+			}
+		}
+
+		if handler, ok := b.handlers[OnCallback]; ok {
+			if handler, ok := handler.(func(*Callback)); ok {
+				// i'm not 100% sure that any of the values
+				// won't be cached, so I pass them all in:
+				go func(b *Bot, handler func(*Callback), c *Callback) {
+					defer b.deferDebug()
+					handler(c)
+				}(b, handler, upd.Callback)
+
+			} else {
+				panic("telebot: callback handler is bad")
+			}
+		}
+		return
+	}
+
+	if upd.Query != nil {
+		if handler, ok := b.handlers[OnQuery]; ok {
+			if handler, ok := handler.(func(*Query)); ok {
+				// i'm not 100% sure that any of the values
+				// won't be cached, so I pass them all in:
+				go func(b *Bot, handler func(*Query), q *Query) {
+					defer b.deferDebug()
+					handler(q)
+				}(b, handler, upd.Query)
+
+			} else {
+				panic("telebot: query handler is bad")
+			}
+		}
+		return
+	}
+
+	if upd.ChosenInlineResult != nil {
+		if handler, ok := b.handlers[OnChosenInlineResult]; ok {
+			if handler, ok := handler.(func(*ChosenInlineResult)); ok {
+				// i'm not 100% sure that any of the values
+				// won't be cached, so I pass them all in:
+				go func(b *Bot, handler func(*ChosenInlineResult),
+					r *ChosenInlineResult) {
+					defer b.deferDebug()
+					handler(r)
+				}(b, handler, upd.ChosenInlineResult)
+
+			} else {
+				panic("telebot: chosen inline result handler is bad")
+			}
+		}
+		return
+	}
 }
 
-// SendMessage sends a text message to recipient.
-func (b *Bot) SendMessage(recipient Recipient, message string, options *SendOptions) error {
-	params := map[string]string{
-		"chat_id": recipient.Destination(),
-		"text":    message,
+func (b *Bot) handle(end string, m *Message) bool {
+	handler, ok := b.handlers[end]
+	if !ok {
+		return false
 	}
 
-	if options != nil {
-		embedSendOptions(params, options)
+	if handler, ok := handler.(func(*Message)); ok {
+		// i'm not 100% sure that any of the values
+		// won't be cached, so I pass them all in:
+		go func(b *Bot, handler func(*Message), m *Message) {
+			defer b.deferDebug()
+			handler(m)
+		}(b, handler, m)
+
+		return true
 	}
 
-	responseJSON, err := b.sendCommand("sendMessage", params)
-	if err != nil {
-		return err
-	}
-
-	var responseReceived struct {
-		Ok          bool
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return nil
+	return false
 }
 
-// ForwardMessage forwards a message to recipient.
-func (b *Bot) ForwardMessage(recipient Recipient, message Message) error {
-	params := map[string]string{
-		"chat_id":      recipient.Destination(),
-		"from_chat_id": strconv.Itoa(message.Origin().ID),
-		"message_id":   strconv.Itoa(message.ID),
+func (b *Bot) handleMedia(m *Message) bool {
+	if m.Photo != nil {
+		b.handle(OnPhoto, m)
+		return true
 	}
 
-	responseJSON, err := b.sendCommand("forwardMessage", params)
-	if err != nil {
-		return err
+	if m.Audio != nil {
+		b.handle(OnAudio, m)
+		return true
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Description string
+	if m.Document != nil {
+		b.handle(OnDocument, m)
+		return true
 	}
 
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
+	if m.Sticker != nil {
+		b.handle(OnSticker, m)
+		return true
 	}
 
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
+	if m.Video != nil {
+		b.handle(OnVideo, m)
+		return true
 	}
 
-	return nil
+	if m.VideoNote != nil {
+		b.handle(OnVideoNote, m)
+		return true
+	}
+
+	if m.Contact != nil {
+		b.handle(OnContact, m)
+		return true
+	}
+
+	if m.Location != nil {
+		b.handle(OnLocation, m)
+		return true
+	}
+
+	if m.Venue != nil {
+		b.handle(OnVenue, m)
+		return true
+	}
+
+	return false
 }
 
-// SendPhoto sends a photo object to recipient.
+// Stop gracefully shuts the poller down.
+func (b *Bot) Stop() {
+	b.stop <- struct{}{}
+}
+
+// Send accepts 2+ arguments, starting with destination chat, followed by
+// some Sendable (or string!) and optional send options.
 //
-// On success, photo object would be aliased to its copy on
-// the Telegram servers, so sending the same photo object
-// again, won't issue a new upload, but would make a use
-// of existing file on Telegram servers.
-func (b *Bot) SendPhoto(recipient Recipient, photo *Photo, options *SendOptions) error {
+// Note: since most arguments are of type interface{}, make sure to pass
+//       them by-pointer, NOT by-value, which will result in a panic.
+//
+// What is a send option exactly? It can be one of the following types:
+//
+//     - *SendOptions (the actual object accepted by Telegram API)
+//     - *ReplyMarkup (a component of SendOptions)
+//     - Option (a shorcut flag for popular options)
+//     - ParseMode (HTML, Markdown, etc)
+//
+// This function will panic upon unsupported payloads and options!
+func (b *Bot) Send(to Recipient, what interface{}, options ...interface{}) (*Message, error) {
+	sendOpts := extractOptions(options)
+
+	switch object := what.(type) {
+	case string:
+		return b.sendText(to, object, sendOpts)
+	case Sendable:
+		return object.Send(b, to, sendOpts)
+	default:
+		panic("telebot: unsupported sendable")
+	}
+}
+
+// SendAlbum is used when sending multiple instances of media as a single
+// message (so-called album).
+//
+// From all existing options, it only supports telebot.Silent.
+func (b *Bot) SendAlbum(to Recipient, a Album, options ...interface{}) ([]Message, error) {
+	media := make([]string, len(a))
+	files := make(map[string]string)
+
+	for i, x := range a {
+		var (
+			f                    *File
+			caption              string
+			mediaRepr, mediaType string
+		)
+
+		switch y := x.(type) {
+		case *Photo:
+			f = &y.File
+			mediaType = "photo"
+			caption = y.Caption
+		case *Video:
+			f = &y.File
+			mediaType = "video"
+			caption = y.Caption
+		default:
+			return nil, errors.Errorf("telebot: album entry #%d is not valid", i)
+		}
+
+		if f.InCloud() {
+			mediaRepr = f.FileID
+		} else if f.FileURL != "" {
+			mediaRepr = f.FileURL
+		} else if f.OnDisk() {
+			mediaRepr = fmt.Sprintf("attach://%d", i)
+			files[strconv.Itoa(i)] = f.FileLocal
+		} else {
+			return nil, errors.Errorf(
+				"telebot: album entry #%d doesn't exist anywhere", i)
+		}
+
+		jsonRepr, _ := json.Marshal(map[string]string{
+			"type":    mediaType,
+			"media":   mediaRepr,
+			"caption": caption,
+		})
+
+		media[i] = string(jsonRepr)
+	}
+
 	params := map[string]string{
-		"chat_id": recipient.Destination(),
-		"caption": photo.Caption,
+		"chat_id": to.Recipient(),
+		"media":   "[" + strings.Join(media, ",") + "]",
 	}
 
-	if options != nil {
-		embedSendOptions(params, options)
+	sendOpts := extractOptions(options)
+	embedSendOptions(params, sendOpts)
+
+	respJSON, err := b.sendFiles("sendMediaGroup", files, params)
+	if err != nil {
+		return nil, err
 	}
 
-	var responseJSON []byte
-	var err error
+	var resp struct {
+		Ok          bool
+		Result      []Message
+		Description string
+	}
 
-	if photo.Exists() {
-		params["photo"] = photo.FileID
-		responseJSON, err = b.sendCommand("sendPhoto", params)
+	err = json.Unmarshal(respJSON, &resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "bad response json")
+	}
+
+	if !resp.Ok {
+		return nil, errors.Errorf("api error: %s", resp.Description)
+	}
+
+	for attachName, _ := range files {
+		i, _ := strconv.Atoi(attachName)
+
+		var newID string
+		if resp.Result[i].Photo != nil {
+			newID = resp.Result[i].Photo.FileID
+		} else {
+			newID = resp.Result[i].Video.FileID
+		}
+
+		a[i].MediaFile().FileID = newID
+	}
+
+	return resp.Result, nil
+}
+
+// Reply behaves just like Send() with an exception of "reply-to" indicator.
+func (b *Bot) Reply(to *Message, what interface{}, options ...interface{}) (*Message, error) {
+	// This function will panic upon unsupported payloads and options!
+	sendOpts := extractOptions(options)
+	if sendOpts == nil {
+		sendOpts = &SendOptions{}
+	}
+
+	sendOpts.ReplyTo = to
+
+	return b.Send(to.Chat, what, sendOpts)
+}
+
+// Forward behaves just like Send() but of all options it
+// only supports Silent (see Bots API).
+//
+// This function will panic upon unsupported payloads and options!
+func (b *Bot) Forward(to Recipient, what *Message, options ...interface{}) (*Message, error) {
+	params := map[string]string{
+		"chat_id":      to.Recipient(),
+		"from_chat_id": what.Chat.Recipient(),
+		"message_id":   strconv.Itoa(what.ID),
+	}
+
+	sendOpts := extractOptions(options)
+	embedSendOptions(params, sendOpts)
+
+	respJSON, err := b.Raw("forwardMessage", params)
+	if err != nil {
+		return nil, err
+	}
+
+	return extractMsgResponse(respJSON)
+}
+
+// Edit is magic, it lets you change already sent message.
+//
+// Use cases:
+//
+//     b.Edit(msg, msg.Text, newMarkup)
+//     b.Edit(msg, "new <b>text</b>", tb.ModeHTML)
+//
+//     // Edit live location:
+//     b.Edit(liveMsg, tb.Location{42.1337, 69.4242})
+//
+func (b *Bot) Edit(message Editable, what interface{}, options ...interface{}) (*Message, error) {
+	messageID, chatID := message.MessageSig()
+	// TODO: add support for inline messages (chatID = 0)
+
+	params := map[string]string{}
+
+	switch v := what.(type) {
+	case string:
+		params["text"] = v
+	case Location:
+		params["latitude"] = fmt.Sprintf("%f", v.Lat)
+		params["longitude"] = fmt.Sprintf("%f", v.Lng)
+	default:
+		panic("telebot: unsupported what argument")
+	}
+
+	// if inline message
+	if chatID == 0 {
+		params["inline_message_id"] = messageID
 	} else {
-		responseJSON, err = b.sendFile("sendPhoto", "photo", photo.filename, params)
+		params["chat_id"] = strconv.FormatInt(chatID, 10)
+		params["message_id"] = messageID
 	}
 
+	sendOpts := extractOptions(options)
+	embedSendOptions(params, sendOpts)
+
+	respJSON, err := b.Raw("editMessageText", params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Result      Message
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	thumbnails := &responseReceived.Result.Photo
-	filename := photo.filename
-	photo.File = (*thumbnails)[len(*thumbnails)-1].File
-	photo.filename = filename
-
-	return nil
+	return extractMsgResponse(respJSON)
 }
 
-// SendAudio sends an audio object to recipient.
+// EditCaption used to edit already sent photo caption with known recepient and message id.
 //
-// On success, audio object would be aliased to its copy on
-// the Telegram servers, so sending the same audio object
-// again, won't issue a new upload, but would make a use
-// of existing file on Telegram servers.
-func (b *Bot) SendAudio(recipient Recipient, audio *Audio, options *SendOptions) error {
-	params := map[string]string{
-		"chat_id": recipient.Destination(),
-	}
+// On success, returns edited message object
+func (b *Bot) EditCaption(originalMsg Editable, caption string) (*Message, error) {
+	messageID, chatID := originalMsg.MessageSig()
 
-	if options != nil {
-		embedSendOptions(params, options)
-	}
+	params := map[string]string{"caption": caption}
 
-	var responseJSON []byte
-	var err error
-
-	if audio.Exists() {
-		params["audio"] = audio.FileID
-		responseJSON, err = b.sendCommand("sendAudio", params)
+	// if inline message
+	if chatID == 0 {
+		params["inline_message_id"] = messageID
 	} else {
-		responseJSON, err = b.sendFile("sendAudio", "audio", audio.filename, params)
+		params["chat_id"] = strconv.FormatInt(chatID, 10)
+		params["message_id"] = messageID
 	}
 
+	respJSON, err := b.Raw("editMessageCaption", params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Result      Message
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	filename := audio.filename
-	*audio = responseReceived.Result.Audio
-	audio.filename = filename
-
-	return nil
+	return extractMsgResponse(respJSON)
 }
 
-// SendDocument sends a general document object to recipient.
+// Delete removes the message, including service messages,
+// with the following limitations:
 //
-// On success, document object would be aliased to its copy on
-// the Telegram servers, so sending the same document object
-// again, won't issue a new upload, but would make a use
-// of existing file on Telegram servers.
-func (b *Bot) SendDocument(recipient Recipient, doc *Document, options *SendOptions) error {
-	params := map[string]string{
-		"chat_id": recipient.Destination(),
-	}
-
-	if options != nil {
-		embedSendOptions(params, options)
-	}
-
-	var responseJSON []byte
-	var err error
-
-	if doc.Exists() {
-		params["document"] = doc.FileID
-		responseJSON, err = b.sendCommand("sendDocument", params)
-	} else {
-		responseJSON, err = b.sendFile("sendDocument", "document", doc.filename, params)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	var responseReceived struct {
-		Ok          bool
-		Result      Message
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	filename := doc.filename
-	*doc = responseReceived.Result.Document
-	doc.filename = filename
-
-	return nil
-}
-
-// SendSticker sends a general document object to recipient.
+//     * A message can only be deleted if it was sent less than 48 hours ago.
+//     * Bots can delete outgoing messages in groups and supergroups.
+//     * Bots granted can_post_messages permissions can delete outgoing
+//       messages in channels.
+//     * If the bot is an administrator of a group, it can delete any message there.
+//     * If the bot has can_delete_messages permission in a supergroup or a
+//       channel, it can delete any message there.
 //
-// On success, sticker object would be aliased to its copy on
-// the Telegram servers, so sending the same sticker object
-// again, won't issue a new upload, but would make a use
-// of existing file on Telegram servers.
-func (b *Bot) SendSticker(recipient Recipient, sticker *Sticker, options *SendOptions) error {
+func (b *Bot) Delete(message Editable) error {
+	messageID, chatID := message.MessageSig()
+
 	params := map[string]string{
-		"chat_id": recipient.Destination(),
+		"chat_id":    strconv.FormatInt(chatID, 10),
+		"message_id": messageID,
 	}
 
-	if options != nil {
-		embedSendOptions(params, options)
-	}
-
-	var responseJSON []byte
-	var err error
-
-	if sticker.Exists() {
-		params["sticker"] = sticker.FileID
-		responseJSON, err = b.sendCommand("sendSticker", params)
-	} else {
-		responseJSON, err = b.sendFile("sendSticker", "sticker", sticker.filename, params)
-	}
-
+	respJSON, err := b.Raw("deleteMessage", params)
 	if err != nil {
 		return err
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Result      Message
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	filename := sticker.filename
-	*sticker = responseReceived.Result.Sticker
-	sticker.filename = filename
-
-	return nil
+	return extractOkResponse(respJSON)
 }
 
-// SendVideo sends a general document object to recipient.
-//
-// On success, video object would be aliased to its copy on
-// the Telegram servers, so sending the same video object
-// again, won't issue a new upload, but would make a use
-// of existing file on Telegram servers.
-func (b *Bot) SendVideo(recipient Recipient, video *Video, options *SendOptions) error {
-	params := map[string]string{
-		"chat_id": recipient.Destination(),
-	}
-
-	if options != nil {
-		embedSendOptions(params, options)
-	}
-
-	var responseJSON []byte
-	var err error
-
-	if video.Exists() {
-		params["video"] = video.FileID
-		responseJSON, err = b.sendCommand("sendVideo", params)
-	} else {
-		responseJSON, err = b.sendFile("sendVideo", "video", video.filename, params)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	var responseReceived struct {
-		Ok          bool
-		Result      Message
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	filename := video.filename
-	*video = responseReceived.Result.Video
-	video.filename = filename
-
-	return nil
-}
-
-// SendLocation sends a general document object to recipient.
-//
-// On success, video object would be aliased to its copy on
-// the Telegram servers, so sending the same video object
-// again, won't issue a new upload, but would make a use
-// of existing file on Telegram servers.
-func (b *Bot) SendLocation(recipient Recipient, geo *Location, options *SendOptions) error {
-	params := map[string]string{
-		"chat_id":   recipient.Destination(),
-		"latitude":  fmt.Sprintf("%f", geo.Latitude),
-		"longitude": fmt.Sprintf("%f", geo.Longitude),
-	}
-
-	if options != nil {
-		embedSendOptions(params, options)
-	}
-
-	responseJSON, err := b.sendCommand("sendLocation", params)
-	if err != nil {
-		return err
-	}
-
-	var responseReceived struct {
-		Ok          bool
-		Result      Message
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return nil
-}
-
-// SendVenue sends a venue object to recipient.
-func (b *Bot) SendVenue(recipient Recipient, venue *Venue, options *SendOptions) error {
-	params := map[string]string{
-		"chat_id":   recipient.Destination(),
-		"latitude":  fmt.Sprintf("%f", venue.Location.Latitude),
-		"longitude": fmt.Sprintf("%f", venue.Location.Longitude),
-		"title":     venue.Title,
-		"address":   venue.Address}
-	if venue.FoursquareID != "" {
-		params["foursquare_id"] = venue.FoursquareID
-	}
-
-	if options != nil {
-		embedSendOptions(params, options)
-	}
-
-	responseJSON, err := b.sendCommand("sendVenue", params)
-	if err != nil {
-		return err
-	}
-
-	var responseReceived struct {
-		Ok          bool
-		Result      Message
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return nil
-}
-
-// SendChatAction updates a chat action for recipient.
+// Notify updates the chat action for recipient.
 //
 // Chat action is a status message that recipient would see where
 // you typically see "Harry is typing" status message. The only
@@ -513,346 +696,432 @@ func (b *Bot) SendVenue(recipient Recipient, venue *Venue, options *SendOptions)
 //
 // Currently, Telegram supports only a narrow range of possible
 // actions, these are aligned as constants of this package.
-func (b *Bot) SendChatAction(recipient Recipient, action ChatAction) error {
+func (b *Bot) Notify(recipient Recipient, action ChatAction) error {
 	params := map[string]string{
-		"chat_id": recipient.Destination(),
+		"chat_id": recipient.Recipient(),
 		"action":  string(action),
 	}
 
-	responseJSON, err := b.sendCommand("sendChatAction", params)
+	respJSON, err := b.Raw("sendChatAction", params)
 	if err != nil {
 		return err
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return nil
+	return extractOkResponse(respJSON)
 }
 
-// Respond publishes a set of responses for an inline query.
-// This function is deprecated in favor of AnswerInlineQuery.
-func (b *Bot) Respond(query Query, results []Result) error {
-	params := map[string]string{
-		"inline_query_id": query.ID,
-	}
-
-	if res, err := json.Marshal(results); err == nil {
-		params["results"] = string(res)
-	} else {
-		b.debug(errors.Wrapf(err, "failed to respond to \"%s\"", query.Text))
-		return err
-	}
-
-	responseJSON, err := b.sendCommand("answerInlineQuery", params)
-	if err != nil {
-		return err
-	}
-
-	var responseReceived struct {
-		Ok          bool
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return nil
-}
-
-// AnswerInlineQuery sends a response for a given inline query. A query can
-// only be responded to once, subsequent attempts to respond to the same query
+// Answer sends a response for a given inline query. A query can only
+// be responded to once, subsequent attempts to respond to the same query
 // will result in an error.
-func (b *Bot) AnswerInlineQuery(query *Query, response *QueryResponse) error {
+func (b *Bot) Answer(query *Query, response *QueryResponse) error {
 	response.QueryID = query.ID
 
-	responseJSON, err := b.sendCommand("answerInlineQuery", response)
+	for _, result := range response.Results {
+		result.Process()
+	}
+
+	respJSON, err := b.Raw("answerInlineQuery", response)
 	if err != nil {
 		return err
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return nil
+	return extractOkResponse(respJSON)
 }
 
-// AnswerCallbackQuery sends a response for a given callback query. A callback can
+// Respond sends a response for a given callback query. A callback can
 // only be responded to once, subsequent attempts to respond to the same callback
 // will result in an error.
-func (b *Bot) AnswerCallbackQuery(callback *Callback, response *CallbackResponse) error {
-	response.CallbackID = callback.ID
+//
+// Example:
+//
+//		bot.Respond(c)
+//		bot.Respond(c, response)
+//
+func (b *Bot) Respond(callback *Callback, responseOptional ...*CallbackResponse) error {
+	var response *CallbackResponse
+	if responseOptional == nil {
+		response = &CallbackResponse{}
+	} else {
+		response = responseOptional[0]
+	}
 
-	responseJSON, err := b.sendCommand("answerCallbackQuery", response)
+	response.CallbackID = callback.ID
+	respJSON, err := b.Raw("answerCallbackQuery", response)
 	if err != nil {
 		return err
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Description string
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return nil
+	return extractOkResponse(respJSON)
 }
 
-// GetFile returns full file object including File.FilePath, which allow you to load file from Telegram
+// FileByID returns full file object including File.FilePath, allowing you to
+// download the file from the server.
 //
-// Usually File objects does not contain any FilePath so you need to perform additional request
-func (b *Bot) GetFile(fileID string) (File, error) {
+// Usually, Telegram-provided File objects miss FilePath so you might need to
+// perform an additional request to fetch them.
+func (b *Bot) FileByID(fileID string) (File, error) {
 	params := map[string]string{
 		"file_id": fileID,
 	}
-	responseJSON, err := b.sendCommand("getFile", params)
+
+	respJSON, err := b.Raw("getFile", params)
 	if err != nil {
 		return File{}, err
 	}
 
-	var responseReceived struct {
+	var resp struct {
 		Ok          bool
 		Description string
 		Result      File
 	}
 
-	err = json.Unmarshal(responseJSON, &responseReceived)
+	err = json.Unmarshal(respJSON, &resp)
 	if err != nil {
 		return File{}, errors.Wrap(err, "bad response json")
 	}
 
-	if !responseReceived.Ok {
-		return File{}, errors.Errorf("api error: %s", responseReceived.Description)
+	if !resp.Ok {
+		return File{}, errors.Errorf("api error: %s", resp.Description)
 
 	}
 
-	return responseReceived.Result, nil
+	return resp.Result, nil
 }
 
-// LeaveChat makes bot leave a group, supergroup or channel.
-func (b *Bot) LeaveChat(recipient Recipient) error {
-	params := map[string]string{
-		"chat_id": recipient.Destination(),
-	}
-	responseJSON, err := b.sendCommand("leaveChat", params)
+// Download saves the file from Telegram servers locally.
+//
+// Maximum file size to download is 20 MB.
+func (b *Bot) Download(f *File, localFilename string) error {
+	g, err := b.FileByID(f.FileID)
 	if err != nil {
 		return err
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Description string
-		Result      bool
-	}
+	url := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s",
+		b.Token, g.FilePath)
 
-	err = json.Unmarshal(responseJSON, &responseReceived)
+	out, err := os.Create(localFilename)
 	if err != nil {
-		return errors.Wrap(err, "bad response json")
+		return wrapSystem(err)
+	}
+	defer out.Close()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return wrapSystem(err)
+	}
+	defer resp.Body.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return wrapSystem(err)
 	}
 
-	if !responseReceived.Ok {
-		return errors.Errorf("api error: %s", responseReceived.Description)
-	}
+	g.FileLocal = localFilename
+	*f = g
 
 	return nil
 }
 
-// GetChat get up to date information about the chat.
+// StopLiveLocation should be called to stop broadcasting live message location
+// before Location.LivePeriod expires.
+//
+// It supports telebot.ReplyMarkup.
+func (b *Bot) StopLiveLocation(message Editable, options ...interface{}) (*Message, error) {
+	messageID, chatID := message.MessageSig()
+
+	params := map[string]string{
+		"chat_id":    fmt.Sprintf("%d", chatID),
+		"message_id": fmt.Sprintf("%d", messageID),
+	}
+
+	sendOpts := extractOptions(options)
+	embedSendOptions(params, sendOpts)
+
+	respJSON, err := b.Raw("stopMessageLiveLocation", params)
+	if err != nil {
+		return nil, err
+	}
+
+	return extractMsgResponse(respJSON)
+}
+
+// GetInviteLink should be used to export chat's invite link.
+func (b *Bot) GetInviteLink(chat *Chat) (string, error) {
+	params := map[string]string{
+		"chat_id": chat.Recipient(),
+	}
+
+	respJSON, err := b.Raw("exportChatInviteLink", params)
+	if err != nil {
+		return "", err
+	}
+
+	var resp struct {
+		Ok          bool
+		Description string
+		Result      string
+	}
+
+	err = json.Unmarshal(respJSON, &resp)
+	if err != nil {
+		return "", errors.Wrap(err, "bad response json")
+	}
+
+	if !resp.Ok {
+		return "", errors.Errorf("api error: %s", resp.Description)
+	}
+
+	return resp.Result, nil
+}
+
+// SetChatTitle should be used to update group title.
+func (b *Bot) SetGroupTitle(chat *Chat, newTitle string) error {
+	params := map[string]string{
+		"chat_id": chat.Recipient(),
+		"title":   newTitle,
+	}
+
+	respJSON, err := b.Raw("setChatTitle", params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// SetGroupDescription should be used to update group title.
+func (b *Bot) SetGroupDescription(chat *Chat, description string) error {
+	params := map[string]string{
+		"chat_id":     chat.Recipient(),
+		"description": description,
+	}
+
+	respJSON, err := b.Raw("setChatDescription", params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// SetGroupPhoto should be used to update group photo.
+func (b *Bot) SetGroupPhoto(chat *Chat, p *Photo) error {
+	params := map[string]string{
+		"chat_id": chat.Recipient(),
+	}
+
+	respJSON, err := b.sendFiles("setChatPhoto",
+		map[string]string{"photo": p.FileLocal}, params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// SetGroupStickerSet should be used to update group's group sticker set.
+func (b *Bot) SetGroupStickerSet(chat *Chat, setName string) error {
+	params := map[string]string{
+		"chat_id":          chat.Recipient(),
+		"sticker_set_name": setName,
+	}
+
+	respJSON, err := b.Raw("setChatStickerSet", params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// DeleteGroupPhoto should be used to just remove group photo.
+func (b *Bot) DeleteGroupPhoto(chat *Chat) error {
+	params := map[string]string{
+		"chat_id": chat.Recipient(),
+	}
+
+	respJSON, err := b.Raw("deleteGroupPhoto", params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// DeleteGroupStickerSet should be used to just remove group sticker set.
+func (b *Bot) DeleteGroupStickerSet(chat *Chat) error {
+	params := map[string]string{
+		"chat_id": chat.Recipient(),
+	}
+
+	respJSON, err := b.Raw("deleteChatStickerSet", params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// Leave makes bot leave a group, supergroup or channel.
+func (b *Bot) Leave(chat *Chat) error {
+	params := map[string]string{
+		"chat_id": chat.Recipient(),
+	}
+
+	respJSON, err := b.Raw("leaveChat", params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// Use this method to pin a message in a supergroup or a channel.
+//
+// It supports telebot.Silent option.
+func (b *Bot) Pin(message Editable, options ...interface{}) error {
+	messageID, chatID := message.MessageSig()
+
+	params := map[string]string{
+		"chat_id":    strconv.FormatInt(chatID, 10),
+		"message_id": messageID,
+	}
+
+	sendOpts := extractOptions(options)
+	embedSendOptions(params, sendOpts)
+
+	respJSON, err := b.Raw("pinChatMessage", params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// Use this method to unpin a message in a supergroup or a channel.
+//
+// It supports telebot.Silent option.
+func (b *Bot) Unpin(chat *Chat) error {
+	params := map[string]string{
+		"chat_id": chat.Recipient(),
+	}
+
+	respJSON, err := b.Raw("upinChatMessage", params)
+	if err != nil {
+		return err
+	}
+
+	return extractOkResponse(respJSON)
+}
+
+// ChatByID fetches chat info of its ID.
 //
 // Including current name of the user for one-on-one conversations,
 // current username of a user, group or channel, etc.
 //
 // Returns a Chat object on success.
-func (b *Bot) GetChat(recipient Recipient) (Chat, error) {
+func (b *Bot) ChatByID(id string) (*Chat, error) {
 	params := map[string]string{
-		"chat_id": recipient.Destination(),
-	}
-	responseJSON, err := b.sendCommand("getChat", params)
-	if err != nil {
-		return Chat{}, err
+		"chat_id": id,
 	}
 
-	var responseReceived struct {
+	respJSON, err := b.Raw("getChat", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp struct {
 		Ok          bool
 		Description string
-		Result      Chat
+		Result      *Chat
 	}
 
-	err = json.Unmarshal(responseJSON, &responseReceived)
+	err = json.Unmarshal(respJSON, &resp)
 	if err != nil {
-		return Chat{}, errors.Wrap(err, "bad response json")
+		return nil, errors.Wrap(err, "bad response json")
 	}
 
-	if !responseReceived.Ok {
-		return Chat{}, errors.Errorf("api error: %s", responseReceived.Description)
+	if !resp.Ok {
+		return nil, errors.Errorf("api error: %s", resp.Description)
 	}
 
-	return responseReceived.Result, nil
+	if resp.Result.Type == ChatChannel && resp.Result.Username != "" {
+		//Channel is Private
+		resp.Result.Type = ChatChannelPrivate
+	}
+
+	return resp.Result, nil
 }
 
-// GetChatAdministrators return list of administrators in a chat.
-//
-// On success, returns an Array of ChatMember objects that
-// contains information about all chat administrators except other bots.
-//
-// If the chat is a group or a supergroup and
-// no administrators were appointed, only the creator will be returned.
-func (b *Bot) GetChatAdministrators(recipient Recipient) ([]ChatMember, error) {
+// ProfilePhotosOf return list of profile pictures for a user.
+func (b *Bot) ProfilePhotosOf(user *User) ([]Photo, error) {
 	params := map[string]string{
-		"chat_id": recipient.Destination(),
-	}
-	responseJSON, err := b.sendCommand("getChatAdministrators", params)
-	if err != nil {
-		return []ChatMember{}, err
+		"user_id": user.Recipient(),
 	}
 
-	var responseReceived struct {
-		Ok          bool
-		Result      []ChatMember
+	respJSON, err := b.Raw("getUserProfilePhotos", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp struct {
+		Ok     bool
+		Result struct {
+			Count  int     `json:"total_count"`
+			Photos []Photo `json:"photos"`
+		}
+
 		Description string `json:"description"`
 	}
 
-	err = json.Unmarshal(responseJSON, &responseReceived)
+	err = json.Unmarshal(respJSON, &resp)
 	if err != nil {
-		return []ChatMember{}, errors.Wrap(err, "bad response json")
+		return nil, errors.Wrap(err, "bad response json")
 	}
 
-	if !responseReceived.Ok {
-		return []ChatMember{}, errors.Errorf("api error: %s", responseReceived.Description)
+	if !resp.Ok {
+		return nil, errors.Errorf("api error: %s", resp.Description)
 	}
 
-	return responseReceived.Result, nil
+	return resp.Result.Photos, nil
 }
 
-// GetChatMembersCount return the number of members in a chat.
-//
-// Returns Int on success.
-func (b *Bot) GetChatMembersCount(recipient Recipient) (int, error) {
-	params := map[string]string{
-		"chat_id": recipient.Destination(),
-	}
-	responseJSON, err := b.sendCommand("getChatMembersCount", params)
-	if err != nil {
-		return 0, err
-	}
-
-	var responseReceived struct {
-		Ok          bool
-		Result      int
-		Description string `json:"description"`
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return 0, errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return 0, errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return responseReceived.Result, nil
-}
-
-// GetUserProfilePhotos return list of profile pictures for a user.
-//
-// Returns a UserProfilePhotos object.
-func (b *Bot) GetUserProfilePhotos(recipient Recipient) (UserProfilePhotos, error) {
-	params := map[string]string{
-		"user_id": recipient.Destination(),
-	}
-	responseJSON, err := b.sendCommand("getUserProfilePhotos", params)
-	if err != nil {
-		return UserProfilePhotos{}, err
-	}
-
-	var responseReceived struct {
-		Ok          bool
-		Result      UserProfilePhotos
-		Description string `json:"description"`
-	}
-
-	err = json.Unmarshal(responseJSON, &responseReceived)
-	if err != nil {
-		return UserProfilePhotos{}, errors.Wrap(err, "bad response json")
-	}
-
-	if !responseReceived.Ok {
-		return UserProfilePhotos{}, errors.Errorf("api error: %s", responseReceived.Description)
-	}
-
-	return responseReceived.Result, nil
-}
-
-// GetChatMember return information about a member of a chat.
+// ChatMemberOf return information about a member of a chat.
 //
 // Returns a ChatMember object on success.
-func (b *Bot) GetChatMember(recipient Recipient, user User) (ChatMember, error) {
+func (b *Bot) ChatMemberOf(chat *Chat, user *User) (*ChatMember, error) {
 	params := map[string]string{
-		"chat_id": recipient.Destination(),
-		"user_id": user.Destination(),
-	}
-	responseJSON, err := b.sendCommand("getChatMember", params)
-	if err != nil {
-		return ChatMember{}, err
+		"chat_id": chat.Recipient(),
+		"user_id": user.Recipient(),
 	}
 
-	var responseReceived struct {
+	respJSON, err := b.Raw("getChatMember", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp struct {
 		Ok          bool
-		Result      ChatMember
+		Result      *ChatMember
 		Description string `json:"description"`
 	}
 
-	err = json.Unmarshal(responseJSON, &responseReceived)
+	err = json.Unmarshal(respJSON, &resp)
 	if err != nil {
-		return ChatMember{}, errors.Wrap(err, "bad response json")
+		return nil, errors.Wrap(err, "bad response json")
 	}
 
-	if !responseReceived.Ok {
-		return ChatMember{}, errors.Errorf("api error: %s", responseReceived.Description)
+	if !resp.Ok {
+		return nil, errors.Errorf("api error: %s", resp.Description)
 	}
 
-	return responseReceived.Result, nil
+	return resp.Result, nil
 }
 
-// GetFileDirectURL returns direct url for files using FileId which you can get from File object
-func (b *Bot) GetFileDirectURL(fileID string) (string, error) {
-	f, err := b.GetFile(fileID)
+// FileURLByID returns direct url for files using FileId which you can get from File object
+func (b *Bot) FileURLByID(fileID string) (string, error) {
+	f, err := b.FileByID(fileID)
 	if err != nil {
 		return "", err
 	}

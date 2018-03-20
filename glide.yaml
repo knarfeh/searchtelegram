@@ -40,6 +40,6 @@ import:
   version: ~1.13.4
 - package: github.com/armon/go-radix
 - package: github.com/tucnak/telebot
-  version: ^1.0.0
+  version: ^2.0.0
 - package: github.com/mitchellh/hashstructure
 - package: gopkg.in/tucnak/telebot.v2

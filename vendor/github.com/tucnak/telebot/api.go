@@ -11,16 +11,14 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
-func wrapSystem(err error) error {
-	return errors.Wrap(err, "system error")
-}
-
-func (b *Bot) sendCommand(method string, payload interface{}) ([]byte, error) {
+// Raw lets you call any method of Bot API manually.
+func (b *Bot) Raw(method string, payload interface{}) ([]byte, error) {
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/%s", b.Token, method)
 
 	var buf bytes.Buffer
@@ -42,143 +40,148 @@ func (b *Bot) sendCommand(method string, payload interface{}) ([]byte, error) {
 	return json, nil
 }
 
-func (b *Bot) sendFile(method, name, path string, params map[string]string) ([]byte, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return []byte{}, wrapSystem(err)
-	}
-	defer file.Close()
-
+func (b *Bot) sendFiles(
+	method string,
+	files map[string]string,
+	params map[string]string) ([]byte, error) {
+	// ---
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(name, filepath.Base(path))
-	if err != nil {
-		return []byte{}, wrapSystem(err)
-	}
 
-	if _, err = io.Copy(part, file); err != nil {
-		return []byte{}, wrapSystem(err)
+	for name, path := range files {
+		if err := func() error {
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			part, err := writer.CreateFormFile(name, filepath.Base(path))
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(part, file)
+			return err
+		} (); err != nil {
+			return nil, wrapSystem(err)
+		}
+
 	}
 
 	for field, value := range params {
 		writer.WriteField(field, value)
 	}
 
-	if err = writer.Close(); err != nil {
-		return []byte{}, wrapSystem(err)
+	if err := writer.Close(); err != nil {
+		return nil, wrapSystem(err)
 	}
 
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/%s", b.Token, method)
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
-		return []byte{}, wrapSystem(err)
+		return nil, wrapSystem(err)
 	}
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return []byte{}, errors.Wrap(err, "http.Post failed")
+		return nil, errors.Wrap(err, "http.Post failed")
 	}
 
 	if resp.StatusCode == http.StatusInternalServerError {
-		return []byte{}, errors.New("api error: internal server error")
+		return nil, errors.New("api error: internal server error")
 	}
 
 	json, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return []byte{}, wrapSystem(err)
+		return nil, wrapSystem(err)
 	}
 
 	return json, nil
 }
 
-func embedSendOptions(params map[string]string, options *SendOptions) {
-	if options == nil {
-		return
+func (b *Bot) sendObject(f *File, what string, params map[string]string) (*Message, error) {
+	sendWhat := "send" + strings.Title(what)
+
+	if what == "videoNote" {
+		what = "video_note"
 	}
 
-	if options.ReplyTo.ID != 0 {
-		params["reply_to_message_id"] = strconv.Itoa(options.ReplyTo.ID)
+	var respJSON []byte
+	var err error
+
+	if f.InCloud() {
+		params[what] = f.FileID
+		respJSON, err = b.Raw(sendWhat, params)
+	} else if f.FileURL != "" {
+		params[what] = f.FileURL
+		respJSON, err = b.Raw(sendWhat, params)
+	} else {
+		respJSON, err = b.sendFiles(sendWhat,
+			map[string]string{what: f.FileLocal}, params)
 	}
 
-	if options.DisableWebPagePreview {
-		params["disable_web_page_preview"] = "true"
+	if err != nil {
+		return nil, err
 	}
 
-	if options.DisableNotification {
-		params["disable_notification"] = "true"
-	}
-
-	if options.ParseMode != ModeDefault {
-		params["parse_mode"] = string(options.ParseMode)
-	}
-
-	// Processing force_reply:
-	{
-		forceReply := options.ReplyMarkup.ForceReply
-		customKeyboard := (options.ReplyMarkup.CustomKeyboard != nil)
-		inlineKeyboard := options.ReplyMarkup.InlineKeyboard != nil
-		hiddenKeyboard := options.ReplyMarkup.HideCustomKeyboard
-		if forceReply || customKeyboard || hiddenKeyboard || inlineKeyboard {
-			replyMarkup, _ := json.Marshal(options.ReplyMarkup)
-			params["reply_markup"] = string(replyMarkup)
-		}
-	}
+	return extractMsgResponse(respJSON)
 }
 
-func (b *Bot) getMe() (User, error) {
-	meJSON, err := b.sendCommand("getMe", nil)
+func (b *Bot) getMe() (*User, error) {
+	meJSON, err := b.Raw("getMe", nil)
 	if err != nil {
-		return User{}, err
+		return nil, err
 	}
 
 	var botInfo struct {
 		Ok          bool
-		Result      User
+		Result      *User
 		Description string
 	}
 
 	err = json.Unmarshal(meJSON, &botInfo)
 	if err != nil {
-		return User{}, errors.Wrap(err, "bad response json")
+		return nil, errors.Wrap(err, "bad response json")
 	}
 
 	if !botInfo.Ok {
-		return User{}, errors.Errorf("api error: %s", botInfo.Description)
+		return nil, errors.Errorf("api error: %s", botInfo.Description)
 	}
 
 	return botInfo.Result, nil
 
 }
 
-func (b *Bot) getUpdates(offset int64, timeout time.Duration) (upd []Update, err error) {
+func (b *Bot) getUpdates(offset int, timeout time.Duration) (upd []Update, err error) {
 	params := map[string]string{
-		"offset":  strconv.FormatInt(offset, 10),
-		"timeout": strconv.FormatInt(int64(timeout/time.Second), 10),
+		"offset":  strconv.Itoa(offset),
+		"timeout": strconv.Itoa(int(timeout / time.Second)),
 	}
-	updatesJSON, errCommand := b.sendCommand("getUpdates", params)
+	updatesJSON, errCommand := b.Raw("getUpdates", params)
 	if errCommand != nil {
 		err = errCommand
 		return
-	}
 
-	var updatesRecieved struct {
+	}
+	var updatesReceived struct {
 		Ok          bool
 		Result      []Update
 		Description string
 	}
 
-	err = json.Unmarshal(updatesJSON, &updatesRecieved)
+	err = json.Unmarshal(updatesJSON, &updatesReceived)
 	if err != nil {
 		err = errors.Wrap(err, "bad response json")
 		return
 	}
 
-	if !updatesRecieved.Ok {
-		err = errors.Errorf("api error: %s", updatesRecieved.Description)
+	if !updatesReceived.Ok {
+		err = errors.Errorf("api error: %s", updatesReceived.Description)
 		return
 	}
 
-	return updatesRecieved.Result, nil
+	return updatesReceived.Result, nil
 }

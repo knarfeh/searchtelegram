@@ -3,20 +3,30 @@ package telebot
 import (
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
+	"strconv"
+
+	"github.com/mitchellh/hashstructure"
 )
+
+// inlineQueryHashOptions sets the HashOptions to be used when hashing
+// an inline query result (used to generate IDs).
+var inlineQueryHashOptions = &hashstructure.HashOptions{
+	Hasher: fnv.New64(),
+}
 
 // Query is an incoming inline query. When the user sends
 // an empty query, your bot could return some default or
 // trending results.
 type Query struct {
-	// Unique identifier for this query. 1-64 bytes.
+	// Unique identifier for this query.
 	ID string `json:"id"`
 
 	// Sender.
 	From User `json:"from"`
 
-	// Sender location, only for bots that request user location.
-	Location *Location `json:"location"`
+	// (Optional) Sender location, only for bots that request user location.
+	Location Location `json:"location"`
 
 	// Text of the query (up to 512 characters).
 	Text string `json:"query"`
@@ -29,12 +39,11 @@ type Query struct {
 // See also: https://core.telegram.org/bots/api#answerinlinequery
 type QueryResponse struct {
 	// The ID of the query to which this is a response.
-	//
-	// Note: Telebot sets this field automatically!
+	// It is not necessary to specify this field manually.
 	QueryID string `json:"inline_query_id"`
 
 	// The results for the inline query.
-	Results Results `json:"results"`
+	Results InlineQueryResults `json:"results"`
 
 	// (Optional) The maximum amount of time in seconds that the result
 	// of the inline query may be cached on the server.
@@ -61,60 +70,72 @@ type QueryResponse struct {
 	SwitchPMParameter string `json:"switch_pm_parameter,omitempty"`
 }
 
-// Result represents one result of an inline query.
-type Result interface {
-	ResultID() string
-	SetResultID(string)
-	Process()
+// InlineQueryResult represents one result of an inline query.
+type InlineQueryResult interface {
+	GetID() string
+	SetID(string)
 }
 
-// Results is a slice wrapper for convenient marshalling.
-type Results []Result
+// InlineQueryResults is a slice wrapper for convenient marshalling.
+type InlineQueryResults []InlineQueryResult
 
 // MarshalJSON makes sure IQRs have proper IDs and Type variables set.
-func (results Results) MarshalJSON() ([]byte, error) {
-	for _, result := range results {
-		if result.ResultID() == "" {
-			result.SetResultID(fmt.Sprintf("%d", &result))
+//
+// If ID of some result appears empty, it gets set to a new hash.
+// JSON-specific Type gets infered from the actual (specific) IQR type.
+func (results *InlineQueryResults) MarshalJSON() ([]byte, error) {
+	for i, result := range *results {
+		if result.GetID() == "" {
+			hash, err := hashstructure.Hash(result, inlineQueryHashOptions)
+			if err != nil {
+				return nil, fmt.Errorf("telebot: can't hash IQR #%d: %s",
+					i, err)
+			}
+
+			result.SetID(strconv.FormatUint(hash, 16))
 		}
 
 		if err := inferIQR(result); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("telebot: can't infer type of IQR #%d: %s",
+				i, err)
 		}
 	}
 
-	return json.Marshal([]Result(results))
+	return json.Marshal([]InlineQueryResult(*results))
 }
 
-func inferIQR(result Result) error {
+func inferIQR(result InlineQueryResult) error {
 	switch r := result.(type) {
-	case *ArticleResult:
+	case *InlineQueryResultArticle:
 		r.Type = "article"
-	case *AudioResult:
+	case *InlineQueryResultAudio:
 		r.Type = "audio"
-	case *ContactResult:
+	case *InlineQueryResultContact:
 		r.Type = "contact"
-	case *DocumentResult:
+	case *InlineQueryResultDocument:
 		r.Type = "document"
-	case *GifResult:
+	case *InlineQueryResultGif:
 		r.Type = "gif"
-	case *LocationResult:
+	case *InlineQueryResultLocation:
 		r.Type = "location"
-	case *Mpeg4GifResult:
+	case *InlineQueryResultMpeg4Gif:
 		r.Type = "mpeg4_gif"
-	case *PhotoResult:
+	case *InlineQueryResultPhoto:
 		r.Type = "photo"
-	case *VenueResult:
+	case *InlineQueryResultVenue:
 		r.Type = "venue"
-	case *VideoResult:
+	case *InlineQueryResultVideo:
 		r.Type = "video"
-	case *VoiceResult:
+	case *InlineQueryResultVoice:
 		r.Type = "voice"
-	case *StickerResult:
-		r.Type = "sticker"
 	default:
-		return fmt.Errorf("result %v is not supported", result)
+		return fmt.Errorf("%T is not an IQR", result)
 	}
 
 	return nil
+}
+
+// Result is a deprecated type, superseded by InlineQueryResult.
+type Result interface {
+	MarshalJSON() ([]byte, error)
 }

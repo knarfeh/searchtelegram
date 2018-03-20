@@ -1,7 +1,6 @@
 package telebot
 
 import (
-	"fmt"
 	"os"
 )
 
@@ -9,32 +8,63 @@ import (
 type File struct {
 	FileID   string `json:"file_id"`
 	FileSize int    `json:"file_size"`
+
+	// file on telegram server https://core.telegram.org/bots/api#file
 	FilePath string `json:"file_path"`
 
-	// Local absolute path to file on local file system.
-	filename string
+	// file on local file system.
+	FileLocal string `json:"file_local"`
+
+	// file on the internet
+	FileURL string `json:"file_url"`
 }
 
-// NewFile attempts to create a File object, leading to a real
-// file on the file system, that could be uploaded later.
+// FromDisk constructs a new local (on-disk) file object.
 //
-// Notice that NewFile doesn't upload file, but only creates
-// a descriptor for it.
-func NewFile(path string) (File, error) {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return File{}, fmt.Errorf("telebot: '%s' does not exist", path)
+// Note, it returns File, not *File for a very good reason:
+// in telebot, File is pretty much an embeddable struct,
+// so upon uploading media you'll need to set embedded File
+// with something. NewFile() returning File makes it a one-liner.
+//
+//     photo := &tb.Photo{File: tb.FromDisk("chicken.jpg")}
+//
+func FromDisk(filename string) File {
+	return File{FileLocal: filename}
+}
+
+// FromURL constructs a new file on provided HTTP URL.
+//
+// Note, it returns File, not *File for a very good reason:
+// in telebot, File is pretty much an embeddable struct,
+// so upon uploading media you'll need to set embedded File
+// with something. NewFile() returning File makes it a one-liner.
+//
+//     photo := &tb.Photo{File: tb.FromURL("https://site.com/picture.jpg")}
+//
+func FromURL(url string) File {
+	return File{FileURL: url}
+}
+
+func (f *File) stealRef(g *File) {
+	if g.OnDisk() {
+		f.FileLocal = g.FileLocal
 	}
 
-	return File{filename: path}, nil
+	if g.FileURL != "" {
+		f.FileURL = g.FileURL
+	}
 }
 
-// Exists says whether the file presents on Telegram servers or not.
-func (f File) Exists() bool {
+// InCloud tells whether the file is present on Telegram servers.
+func (f *File) InCloud() bool {
 	return f.FileID != ""
 }
 
-// Local returns location of file on local file system, if it's
-// actually there, otherwise returns empty string.
-func (f File) Local() string {
-	return f.filename
+// OnDisk will return true if file is present on disk.
+func (f *File) OnDisk() bool {
+	if _, err := os.Stat(f.FileLocal); err != nil {
+		return false
+	}
+
+	return true
 }

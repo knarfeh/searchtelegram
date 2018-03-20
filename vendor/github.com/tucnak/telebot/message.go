@@ -1,6 +1,7 @@
 package telebot
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -8,52 +9,90 @@ import (
 type Message struct {
 	ID int `json:"message_id"`
 
-	// For message sent to channels, Sender may be empty
-	Sender User `json:"from"`
+	// For message sent to channels, Sender will be nil
+	Sender *User `json:"from"`
 
-	Unixtime int `json:"date"`
+	// Unixtime, use Message.Time() to get time.Time
+	Unixtime int64 `json:"date"`
+
+	// Conversation the message belongs to.
+	Chat *Chat `json:"chat"`
 
 	// For forwarded messages, sender of the original message.
-	OriginalSender User `json:"forward_from"`
+	OriginalSender *User `json:"forward_from"`
 
-	// For forwarded messages, chat of the original message when forwarded from a channel.
-	OriginalChat Chat `json:"forward_from_chat"`
+	// For forwarded messages, chat of the original message when
+	// forwarded from a channel.
+	OriginalChat *Chat `json:"forward_from_chat"`
 
 	// For forwarded messages, unixtime of the original message.
 	OriginalUnixtime int `json:"forward_date"`
 
 	// For replies, ReplyTo represents the original message.
+	//
 	// Note that the Message object in this field will not
 	// contain further ReplyTo fields even if it
 	// itself is a reply.
 	ReplyTo *Message `json:"reply_to_message"`
 
-	// For a text message, the actual UTF-8 text of the message
+	// (Optional) Time of last edit in Unix
+	LastEdit int64 `json:"edit_date"`
+
+	// AlbumID is the unique identifier of a media message group
+	// this message belongs to.
+	AlbumID string `json:"media_group_id"`
+
+	// Author signature (in channels).
+	Signature string `json:"author_signature"`
+
+	// For a text message, the actual UTF-8 text of the message.
 	Text string `json:"text"`
 
+	// For registered commands, will contain the string payload:
+	//
+	// Ex: `/command <payload>` or `/command@botname <payload>`
+	Payload string `json:"-"`
+
+	// For text messages, special entities like usernames, URLs, bot commands,
+	// etc. that appear in the text.
+	Entities []MessageEntity `json:"entities,omitempty"`
+
+	// Some messages containing media, may as well have a caption.
+	Caption string `json:"caption,omitempty"`
+
+	// For messages with a caption, special entities like usernames, URLs,
+	// bot commands, etc. that appear in the caption.
+	CaptionEntities []MessageEntity `json:"caption_entities,omitempty"`
+
 	// For an audio recording, information about it.
-	Audio Audio `json:"audio"`
+	Audio *Audio `json:"audio"`
 
-	// For a general file, information about it.
-	Document Document `json:"document"`
+	// For a gneral file, information about it.
+	Document *Document `json:"document"`
 
-	// For a photo, available thumbnails.
-	Photo []Thumbnail `json:"photo"`
+	// For a photo, all available sizes (thumbnails).
+	Photo *Photo `json:"photo"`
 
 	// For a sticker, information about it.
-	Sticker Sticker `json:"sticker"`
+	Sticker *Sticker `json:"sticker"`
+
+	// For a voice message, information about it.
+	Voice *Voice `json:"voice"`
+
+	// For a video note, information about it.
+	VideoNote *VideoNote `json:"video_note"`
 
 	// For a video, information about it.
-	Video Video `json:"video"`
+	Video *Video `json:"video"`
 
 	// For a contact, contact information itself.
-	Contact Contact `json:"contact"`
+	Contact *Contact `json:"contact"`
 
 	// For a location, its longitude and latitude.
-	Location Location `json:"location"`
+	Location *Location `json:"location"`
 
-	// A group chat message belongs to, empty if personal.
-	Chat Chat `json:"chat"`
+	// For a venue, information about it.
+	Venue *Venue `json:"venue"`
 
 	// For a service message, represents a user,
 	// that just got added to chat, this message came from.
@@ -61,7 +100,7 @@ type Message struct {
 	// Sender leads to User, capable of invite.
 	//
 	// UserJoined might be the Bot itself.
-	UserJoined User `json:"new_chat_member"`
+	UserJoined *User `json:"new_chat_member"`
 
 	// For a service message, represents a user,
 	// that just left chat, this message came from.
@@ -70,25 +109,30 @@ type Message struct {
 	// capable of this kick.
 	//
 	// UserLeft might be the Bot itself.
-	UserLeft User `json:"left_chat_member"`
+	UserLeft *User `json:"left_chat_member"`
 
 	// For a service message, represents a new title
 	// for chat this message came from.
 	//
 	// Sender would lead to a User, capable of change.
-	NewChatTitle string `json:"new_chat_title"`
+	NewGroupTitle string `json:"new_chat_title"`
 
 	// For a service message, represents all available
-	// thumbnails of new chat photo.
+	// thumbnails of the new chat photo.
 	//
 	// Sender would lead to a User, capable of change.
-	NewChatPhoto []Thumbnail `json:"new_chat_photo"`
+	NewGroupPhoto *Photo `json:"new_chat_photo"`
+
+	// For a service message, new members that were added to
+	// the group or supergroup and information about them
+	// (the bot itself may be one of these members).
+	UsersJoined []User `json:"new_chat_members"`
 
 	// For a service message, true if chat photo just
 	// got removed.
 	//
 	// Sender would lead to a User, capable of change.
-	ChatPhotoDeleted bool `json:"delete_chat_photo"`
+	GroupPhotoDeleted bool `json:"delete_chat_photo"`
 
 	// For a service message, true if group has been created.
 	//
@@ -96,7 +140,7 @@ type Message struct {
 	// initial group chat members.
 	//
 	// Sender would lead to creator of the chat.
-	ChatCreated bool `json:"group_chat_created"`
+	GroupCreated bool `json:"group_chat_created"`
 
 	// For a service message, true if super group has been created.
 	//
@@ -132,40 +176,73 @@ type Message struct {
 	// Sender would lead to creator of the migration.
 	MigrateFrom int64 `json:"migrate_from_chat_id"`
 
-	Entities []MessageEntity `json:"entities,omitempty"`
-
-	Caption string `json:"caption,omitempty"`
+	// Specified message was pinned. Note that the Message object
+	// in this field will not contain further ReplyTo fields even
+	// if it is itself a reply.
+	PinnedMessage *Message `json:"pinned_message"`
 }
 
-// Origin returns an origin of message: group chat / personal.
-func (m *Message) Origin() User {
-	// if m.IsPersonal() {
-	// 	return m.Chat
-	// }
+// MessageEntity object represents "special" parts of text messages,
+// including hashtags, usernames, URLs, etc.
+type MessageEntity struct {
+	// Specifies entity type.
+	Type EntityType `json:"type"`
 
-	return m.Sender
+	// Offset in UTF-16 code units to the start of the entity.
+	Offset int `json:"offset"`
+
+	// Length of the entity in UTF-16 code units.
+	Length int `json:"length"`
+
+	// (Optional) For EntityTextLink entity type only.
+	//
+	// URL will be opened after user taps on the text.
+	URL string `json:"url,omitempty"`
+
+	// (Optional) For EntityTMention entity type only.
+	User *User `json:"user,omitempty"`
+}
+
+// MessageSig satisfies Editable interface (see Editable.)
+func (m *Message) MessageSig() (string, int64) {
+	return strconv.Itoa(m.ID), m.Chat.ID
 }
 
 // Time returns the moment of message creation in local time.
 func (m *Message) Time() time.Time {
-	return time.Unix(int64(m.Unixtime), 0)
+	return time.Unix(m.Unixtime, 0)
+}
+
+// LastEdited returns time.Time of last edit.
+func (m *Message) LastEdited() time.Time {
+	return time.Unix(m.LastEdit, 0)
 }
 
 // IsForwarded says whether message is forwarded copy of another
 // message or not.
 func (m *Message) IsForwarded() bool {
-	return m.OriginalSender != User{} || m.OriginalChat != Chat{}
+	return m.OriginalSender != nil || m.OriginalChat != nil
 }
 
-// IsReply says whether message is reply to another message or not.
+// IsReply says whether message is a reply to another message.
 func (m *Message) IsReply() bool {
 	return m.ReplyTo != nil
 }
 
-// IsPersonal returns true, if message is a personal message,
-// returns false if sent to group chat.
-func (m *Message) IsPersonal() bool {
-	return !m.Chat.IsGroupChat()
+// Private returns true, if it's a personal message.
+func (m *Message) Private() bool {
+	return m.Chat.Type == ChatPrivate
+}
+
+// FromGroup returns true, if message came from a group OR
+// a super group.
+func (m *Message) FromGroup() bool {
+	return m.Chat.Type == ChatGroup || m.Chat.Type == ChatSuperGroup
+}
+
+// FromChannel returns true, if message came from a channel.
+func (m *Message) FromChannel() bool {
+	return m.Chat.Type == ChatChannel
 }
 
 // IsService returns true, if message is a service message,
@@ -175,31 +252,16 @@ func (m *Message) IsPersonal() bool {
 // typically occur on some global action. For instance, when
 // anyone leaves the chat or chat title changes.
 func (m *Message) IsService() bool {
-	service := false
+	fact := false
 
-	if (m.UserJoined != User{}) {
-		service = true
-	}
+	fact = fact || m.UserJoined != nil
+	fact = fact || len(m.UsersJoined) > 0
+	fact = fact || m.UserLeft != nil
+	fact = fact || m.NewGroupTitle != ""
+	fact = fact || m.NewGroupPhoto != nil
+	fact = fact || m.GroupPhotoDeleted
+	fact = fact || m.GroupCreated || m.SuperGroupCreated
+	fact = fact || (m.MigrateTo != m.MigrateFrom)
 
-	if (m.UserLeft != User{}) {
-		service = true
-	}
-
-	if m.NewChatTitle != "" {
-		service = true
-	}
-
-	if len(m.NewChatPhoto) > 0 {
-		service = true
-	}
-
-	if m.ChatPhotoDeleted {
-		service = true
-	}
-
-	if m.ChatCreated {
-		service = true
-	}
-
-	return service
+	return fact
 }

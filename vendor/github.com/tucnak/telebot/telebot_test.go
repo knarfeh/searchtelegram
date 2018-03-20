@@ -20,7 +20,7 @@ func TestBot(t *testing.T) {
 		t.Fatal("Could't find TELEBOT_SECRET, aborting.")
 	}
 
-	_, err := NewBot(token)
+	_, err := NewBot(Settings{Token: token})
 	if err != nil {
 		t.Fatal("couldn't create bot:", err)
 	}
@@ -28,44 +28,20 @@ func TestBot(t *testing.T) {
 
 func TestRecipient(_ *testing.T) {
 	bot := Bot{}
-	bot.SendMessage(User{}, "", nil)
-	bot.SendMessage(Chat{}, "", nil)
+	bot.Send(&User{}, "")
+	bot.Send(&Chat{}, "")
 }
 
 func TestFile(t *testing.T) {
-	file, err := NewFile("telebot.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	file := FromDisk("telebot.go")
 
-	if file.Exists() {
+	if file.InCloud() {
 		t.Fatal("Newly created file can't exist on Telegram servers!")
 	}
 
 	file.FileID = "magic"
 
-	if !file.Exists() {
-		t.Fatal("File with defined FileID is supposed to exist, fail.")
-	}
-
-	if file.Local() != "telebot.go" {
+	if file.FileLocal != "telebot.go" {
 		t.Fatal("File doesn't preserve its original filename.")
-	}
-}
-
-func TestChat(t *testing.T) {
-	user := Chat{Type: "group", Title: "bazinga"}
-
-	// According to API, chat object with group Type is a group chat.
-	if !user.IsGroupChat() {
-		t.Fatal("Can't tell private and group chats apart!")
-	}
-
-	// Reverse.
-	user.Title = ""
-	user.Type = "private"
-
-	if user.IsGroupChat() {
-		t.Fatal("Can't tell private and group chats apart!")
 	}
 }

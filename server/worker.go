@@ -19,8 +19,7 @@ import (
 	"github.com/knarfeh/searchtelegram/server/domain"
 	"github.com/olebedev/config"
 
-	tb "gopkg.in/tucnak/telebot.v2"
-
+	tb "github.com/tucnak/telebot"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 

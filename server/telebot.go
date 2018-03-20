@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
-	tb "gopkg.in/tucnak/telebot.v2"
+	"github.com/knarfeh/searchtelegram/server/domain"
+
+	tb "github.com/tucnak/telebot"
 )
 
 // TeleBot encapsulation telebot, redis(for search)
@@ -33,7 +36,7 @@ func CreateTeleBot(tgBotToken, redisHost, redisPort string) (*TeleBot, error) {
 	b.Handle("/ping", telebot.pong)
 	b.Handle("/start", telebot.start)
 	b.Handle("/detail", telebot.detail)
-	b.Handle("/submit", telebot.detail)
+	b.Handle("/submit", telebot.submit)
 	b.Handle("/search", telebot.search)
 	b.Handle("/search_group", telebot.searchGroup)
 	b.Handle("/search_bot", telebot.searchBot)
@@ -42,22 +45,6 @@ func CreateTeleBot(tgBotToken, redisHost, redisPort string) (*TeleBot, error) {
 	// b.Handle("/top", telebot.pong)     // TODO
 
 	return telebot, nil
-}
-
-// Private. For test purpose
-func (telebot *TeleBot) pong(m *tb.Message) {
-	if m.Sender.Username != "knarfeh" {
-		return
-	}
-
-	stChannel := &tb.Chat{
-		Type:     tb.ChatChannel,
-		Username: "knarfehDebug",
-	}
-	telebot.tb.Send(stChannel, "pong "+m.Payload)
-
-	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "pong "+m.Payload)
 }
 
 func (telebot *TeleBot) start(m *tb.Message) {
@@ -72,10 +59,24 @@ func (telebot *TeleBot) detail(m *tb.Message) {
 	telebot.tb.Send(m.Sender, "detail, TODO")
 }
 
+// submit new group, channel, bot
 func (telebot *TeleBot) submit(m *tb.Message) {
-	// submit new group, channel, bot
-	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "submit, TODO")
+	fmt.Printf("[submit]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
+
+	if m.Payload == "" {
+		telebot.tb.Send(m.Sender, "Please input telegram ID, like: /submit telegram")
+		return
+	}
+	tgResource := domain.NewTgResource()
+	tgResource.TgID = m.Payload
+	tgResouceString, _ := json.Marshal(tgResource)
+	fmt.Printf("Create tg resource: %s\n", tgResouceString)
+	err := telebot.redisClient.Client.Publish("searchtelegram", string(tgResouceString)).Err()
+	if err != nil {
+		panic(err)
+	}
+
+	telebot.tb.Send(m.Sender, "Successfully submitted. If everything goes well, you will be able to search for it after a while.")
 }
 
 func (telebot *TeleBot) search(m *tb.Message) {
@@ -99,3 +100,25 @@ func (telebot *TeleBot) searchChannel(m *tb.Message) {
 	fmt.Println(m.Sender)
 	telebot.tb.Send(m.Sender, "search channel, TODO")
 }
+
+// Private. For test purpose
+func (telebot *TeleBot) pong(m *tb.Message) {
+	if m.Sender.Username != "knarfeh" {
+		return
+	}
+
+	stChannel := &tb.Chat{
+		Type:     tb.ChatChannel,
+		Username: "knarfehDebug",
+	}
+	telebot.tb.Send(stChannel, "pong "+m.Payload)
+
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "pong "+m.Payload)
+}
+
+// Utils
+
+// func (telebot *TeleBot) getTgResourceFromString(s string) {
+// fmt.Println("Dont need it now")
+// }
