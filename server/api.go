@@ -133,6 +133,7 @@ func (api *API) GetTgResource(c echo.Context) error {
 
 // CreateTgResource ...
 func (api *API) CreateTgResource(c echo.Context) error {
+	// TODO: check already exist
 	app := c.Get("app").(*App)
 	tgResource := domain.NewTgResource()
 	fmt.Println("Create tg resource with: ", *tgResource)

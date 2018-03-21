@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/knarfeh/searchtelegram/server/domain"
 	"github.com/olebedev/config"
 
 	tb "github.com/tucnak/telebot"
+	elastic "gopkg.in/olivere/elastic.v5"
 )
 
 // TeleBot encapsulation telebot, redis(for search)
@@ -55,6 +57,7 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)
 	b.Handle("/search", telebot.search)
+	b.Handle("/help", telebot.help)
 	b.Handle("/search_group", telebot.searchGroup)
 	b.Handle("/search_bot", telebot.searchBot)
 	b.Handle("/search_channel", telebot.searchChannel)
@@ -73,7 +76,13 @@ func (telebot *TeleBot) start(m *tb.Message) {
 // get detail of an tg_ID
 func (telebot *TeleBot) get(m *tb.Message) {
 	fmt.Printf("[detail]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
-	// TODO, get from redis first ... handle not exist
+
+	tgIDExist, _ := telebot.redisClient.Client.Get("tgid:" + m.Payload).Result()
+	if tgIDExist == "" {
+		telebot.tb.Send(m.Sender, "Ops, this id does not exist, perhaps you could submit with /submit "+m.Payload)
+		return
+	}
+
 	resourceResult, _ := telebot.esClient.Client.Get().Index("telegram").Type("resource").Id(m.Payload).Do(context.TODO())
 	tgResource := domain.NewTgResource()
 	json.Unmarshal(*resourceResult.Source, tgResource)
@@ -90,6 +99,11 @@ func (telebot *TeleBot) submit(m *tb.Message) {
 		telebot.tb.Send(m.Sender, "Please input telegram ID, like: /submit telegram")
 		return
 	}
+	tgIDExist, _ := telebot.redisClient.Client.Get("tgid:" + m.Payload).Result()
+	if tgIDExist != "" {
+		telebot.tb.Send(m.Sender, "Ha, this id already exist, you could get detailed information with /get "+m.Payload)
+		return
+	}
 	tgResource := domain.NewTgResource()
 	tgResource.TgID = m.Payload
 	tgResouceString, _ := json.Marshal(tgResource)
@@ -103,9 +117,44 @@ func (telebot *TeleBot) submit(m *tb.Message) {
 }
 
 func (telebot *TeleBot) search(m *tb.Message) {
+	if m.Payload == "" {
+		telebot.tb.Send(m.Sender, "Please input search string, like: /search telegram")
+		return
+	}
+	splitPayload := strings.SplitN(m.Payload, " ", 2)
+	queryString := splitPayload[0]
+	var tagstring string
+	if len(splitPayload) == 2 {
+		tagstring = splitPayload[1]
+	}
+	if !strings.Contains(tagstring, "#") {
+		fmt.Printf("No # in tagstring, sender: %s", m.Sender.Username)
+		tagstring = ""
+	}
+	boolQuery := elastic.NewBoolQuery()
+	for _, item := range String2TagSlice(tagstring) {
+		if item == " " || item == "" {
+			continue
+		}
+		boolQuery = boolQuery.Should(elastic.NewTermQuery("tags.name.keyword", item))
+	}
+	simpleQuery := elastic.NewSimpleQueryStringQuery(queryString)
+	// fmt.Println(simpleQuery.Source()) // TODO: add tests
+	// fmt.Println(boolQuery.Source())
+	search := telebot.esClient.Client.Search().Index("telegram").Type("resource").Size(20).PostFilter(boolQuery)
+	searchResult, err := search.Query(simpleQuery).Do(context.TODO())
+	if err != nil {
+		panic(err)
+	}
+
+	result := Hits2Str(*searchResult.Hits)
+	telebot.tb.Send(m.Sender, result)
+}
+
+func (telebot *TeleBot) help(m *tb.Message) {
 	// search group balabala
 	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "search, TODO")
+	telebot.tb.Send(m.Sender, "help, TODO")
 }
 
 func (telebot *TeleBot) searchGroup(m *tb.Message) {
