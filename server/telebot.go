@@ -57,7 +57,8 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)
 	b.Handle("/search", telebot.search)
-	// b.Handle("/help", telebot.help)
+	b.Handle("/help", telebot.start)
+	// b.Handle("/tips", telebot.tips)
 	b.Handle("/search_group", telebot.searchGroup)
 	b.Handle("/search_bot", telebot.searchBot)
 	b.Handle("/search_channel", telebot.searchChannel)
@@ -113,7 +114,7 @@ func (telebot *TeleBot) submit(m *tb.Message) {
 		panic(err)
 	}
 
-	telebot.tb.Send(m.Sender, "Successfully submitted. If everything goes well, you will be able to search for it after a while.")
+	telebot.tb.Send(m.Sender, "👏Successfully submitted. If everything goes well, you will be able to search for it after a while.")
 }
 
 func (telebot *TeleBot) search(m *tb.Message) {

@@ -101,13 +101,25 @@ func Hits2Str(hits elastic.SearchHits) string {
 // StartInfo ...
 func StartInfo() string {
 	result := `
-/start Get help information.
+🇬🇧
+I will help you search telegram group, channel, bot, people. You can also submit new item, get details with telegram ID
 
-/search [telegramID] [tags] Search group, channel, bot, people. i.e /search telegram #group#people#tag3
+🇨🇳
+我可以帮助您搜索电报群组，频道，机器人，用户。您也可以提交新的电报 ID，根据 ID 获取详细信息。
 
-/get [telegramID] Get details by telegram ID. i.e /get searchtelegramdotcombot
+/start Get help information
 
-/submit [telegramID] Submit an item, i.e /submit searchtelegramchannel
+/search [searchstring] [tagstring] Search group, channel, bot, people
+
+  i.e /search telegram #group#people#tag3
+
+/get [telegramID] Get details with telegram ID
+
+  i.e /get searchtelegramdotcombot
+
+/submit [telegramID] Submit new item
+
+  i.e /submit searchtelegramchannel
 `
 	return result
 }
