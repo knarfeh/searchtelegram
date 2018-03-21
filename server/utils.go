@@ -60,6 +60,12 @@ func Tags2String(tags []domain.Tag) string {
 
 // String2TagSlice ...
 func String2TagSlice(tagstring string) []string {
+	if !strings.Contains(tagstring, "#") {
+		tagstring = ""
+	} else {
+		i := strings.Index(tagstring, "#")
+		tagstring = tagstring[i:]
+	}
 	noSpaceString := strings.Replace(tagstring, " ", "", -1)
 	notags := strings.Replace(noSpaceString, "#", " ", -1)
 	justSpaceString := strings.TrimSpace(notags)
@@ -75,7 +81,7 @@ func Hits2Str(hits elastic.SearchHits) string {
 	}
 	hitStr := ""
 	if hits.TotalHits == 0 {
-		return "Sorry, but we don't find any result"
+		return "😱Sorry, but we don't find any result"
 	}
 	for _, hit := range hits.Hits {
 		hitStr = ""
@@ -86,8 +92,22 @@ func Hits2Str(hits elastic.SearchHits) string {
 		if description == "" {
 			description = "None"
 		}
-		hitStr = emojiWithType(instance.Type) + "  @" + instance.TgID + "\nDescription: " + description + "\nTags: " + Tags2String(instance.Tags) + "\n\n"
+		hitStr = emojiWithType(instance.Type) + "  @" + instance.TgID + "\nDescription: " + strings.TrimSpace(description) + "\nTags: " + Tags2String(instance.Tags) + "\n\n"
 		result = result + hitStr
 	}
 	return result + sigStr()
+}
+
+// StartInfo ...
+func StartInfo() string {
+	result := `
+/start Get help information.
+
+/search [telegramID] [tags] Search group, channel, bot, people. i.e /search telegram #group#people#tag3
+
+/get [telegramID] Get details by telegram ID. i.e /get searchtelegramdotcombot
+
+/submit [telegramID] Submit an item, i.e /submit searchtelegramchannel
+`
+	return result
 }

@@ -57,7 +57,7 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)
 	b.Handle("/search", telebot.search)
-	b.Handle("/help", telebot.help)
+	// b.Handle("/help", telebot.help)
 	b.Handle("/search_group", telebot.searchGroup)
 	b.Handle("/search_bot", telebot.searchBot)
 	b.Handle("/search_channel", telebot.searchChannel)
@@ -67,10 +67,10 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	return telebot, nil
 }
 
+// get detail of an tg_ID
 func (telebot *TeleBot) start(m *tb.Message) {
-	// get detail of an tg_ID
-	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "start, TODO")
+	fmt.Printf("[start]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
+	telebot.tb.Send(m.Sender, StartInfo())
 }
 
 // get detail of an tg_ID
@@ -117,19 +117,17 @@ func (telebot *TeleBot) submit(m *tb.Message) {
 }
 
 func (telebot *TeleBot) search(m *tb.Message) {
+	fmt.Printf("[search]username: %s, payload: %s\n", m.Sender.Username, m.Payload)
 	if m.Payload == "" {
 		telebot.tb.Send(m.Sender, "Please input search string, like: /search telegram")
 		return
 	}
+
 	splitPayload := strings.SplitN(m.Payload, " ", 2)
 	queryString := splitPayload[0]
-	var tagstring string
+	tagstring := ""
 	if len(splitPayload) == 2 {
 		tagstring = splitPayload[1]
-	}
-	if !strings.Contains(tagstring, "#") {
-		fmt.Printf("No # in tagstring, sender: %s", m.Sender.Username)
-		tagstring = ""
 	}
 	boolQuery := elastic.NewBoolQuery()
 	for _, item := range String2TagSlice(tagstring) {
@@ -139,8 +137,6 @@ func (telebot *TeleBot) search(m *tb.Message) {
 		boolQuery = boolQuery.Should(elastic.NewTermQuery("tags.name.keyword", item))
 	}
 	simpleQuery := elastic.NewSimpleQueryStringQuery(queryString)
-	// fmt.Println(simpleQuery.Source()) // TODO: add tests
-	// fmt.Println(boolQuery.Source())
 	search := telebot.esClient.Client.Search().Index("telegram").Type("resource").Size(20).PostFilter(boolQuery)
 	searchResult, err := search.Query(simpleQuery).Do(context.TODO())
 	if err != nil {
