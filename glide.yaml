@@ -44,3 +44,6 @@ import:
 - package: github.com/mitchellh/hashstructure
 - package: gopkg.in/tucnak/telebot.v2
 - package: gopkg.in/yaml.v2
+- package: github.com/RedisLabs/redisearch-go
+  subpackages:
+  - redisearch

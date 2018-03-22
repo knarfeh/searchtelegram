@@ -1,12 +1,12 @@
-hash: 14ca48e76bbe6fd015c8e19834164f777c6ecdecfb5d665a752344bcb43fc757
-updated: 2018-03-20T18:20:43.795821618+08:00
+hash: ec6b3686acdc280cf6e0c53a593a67a5f10ab327cbd163daa8b7f8dfec0d0c3e
+updated: 2018-03-22T14:40:41.364188711+08:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 901648c87902174f774fac311d7f176f8647bdaa
 - name: github.com/armon/go-radix
   version: 1fca145dffbcaa8fe914309b1ec0cfc67500fe61
 - name: github.com/aws/aws-sdk-go
-  version: f0872da8a448f8cb10f4f0c95c2100e4f7356448
+  version: 0a302e6abb548c4a4d22cde8eab1693ee498f202
   subpackages:
   - aws
   - aws/awserr
@@ -121,6 +121,10 @@ imports:
   version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 - name: github.com/PuerkitoBio/goquery
   version: 09540e565986583836b5fc792fe951ec5fd201dd
+- name: github.com/RedisLabs/redisearch-go
+  version: 2a65d4ead342bea072827a2f00fd69cd2aaa2d7c
+  subpackages:
+  - redisearch
 - name: github.com/technoweenie/multipartstreamer
   version: a90a01d73ae432e2611d178c18367fbaa13e0154
 - name: github.com/tucnak/telebot

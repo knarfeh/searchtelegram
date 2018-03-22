@@ -52,7 +52,7 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 		redisClient: redisClient,
 	}
 
-	b.Handle("/ping", telebot.pong)
+	// TODO: gobackup, pagination, suggestion, redisearch, auto https, telebot diagnose
 	b.Handle("/start", telebot.start)
 	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)
@@ -64,6 +64,8 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	b.Handle("/search_channel", telebot.searchChannel)
 	b.Handle("/search_people", telebot.searchChannel)
 	// b.Handle("/top", telebot.pong)     // TODO
+	b.Handle("/ping", telebot.pong)
+	b.Handle("/status", telebot.status)
 
 	return telebot, nil
 }
@@ -72,6 +74,7 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 func (telebot *TeleBot) start(m *tb.Message) {
 	fmt.Printf("[start]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
 	telebot.tb.Send(m.Sender, StartInfo())
+	telebot.redisClient.Client.SAdd("status:unique-user", m.Sender.Username)
 }
 
 // get detail of an tg_ID
@@ -91,6 +94,7 @@ func (telebot *TeleBot) get(m *tb.Message) {
 	message, emoji := TgResource2Str(*tgResource)
 	channelMessage := "\n" + emoji + "\n \n @" + message
 	telebot.tb.Send(m.Sender, channelMessage)
+	telebot.redisClient.Client.SAdd("status:get-unique-user", m.Sender.Username)
 }
 
 // submit new group, channel, bot
@@ -115,6 +119,7 @@ func (telebot *TeleBot) submit(m *tb.Message) {
 	}
 
 	telebot.tb.Send(m.Sender, "👏Successfully submitted. If everything goes well, you will be able to search for it after a while.")
+	telebot.redisClient.Client.SAdd("status:submit-unique-user", m.Sender.Username)
 }
 
 func (telebot *TeleBot) search(m *tb.Message) {
@@ -124,11 +129,11 @@ func (telebot *TeleBot) search(m *tb.Message) {
 		return
 	}
 
-	splitPayload := strings.SplitN(m.Payload, " ", 2)
+	splitPayload := strings.SplitN(m.Payload, "#", 2)
 	queryString := splitPayload[0]
 	tagstring := ""
 	if len(splitPayload) == 2 {
-		tagstring = splitPayload[1]
+		tagstring = "#" + splitPayload[1]
 	}
 	boolQuery := elastic.NewBoolQuery()
 	for _, item := range String2TagSlice(tagstring) {
@@ -146,6 +151,7 @@ func (telebot *TeleBot) search(m *tb.Message) {
 
 	result := Hits2Str(*searchResult.Hits)
 	telebot.tb.Send(m.Sender, result)
+	telebot.redisClient.Client.SAdd("status:search-unique-user", m.Sender.Username)
 }
 
 func (telebot *TeleBot) help(m *tb.Message) {
@@ -176,18 +182,19 @@ func (telebot *TeleBot) pong(m *tb.Message) {
 		return
 	}
 
-	stChannel := &tb.Chat{
-		Type:     tb.ChatChannel,
-		Username: "knarfehDebug",
-	}
-	telebot.tb.Send(stChannel, "pong "+m.Payload)
-
 	fmt.Println(m.Sender)
 	telebot.tb.Send(m.Sender, "pong "+m.Payload)
+	telebot.redisClient.Client.SAdd("status:ping-unique-user", m.Sender.Username)
 }
 
-// Utils
-
-// func (telebot *TeleBot) getTgResourceFromString(s string) {
-// fmt.Println("Dont need it now")
-// }
+// Private. Gathering server info
+func (telebot *TeleBot) status(m *tb.Message) {
+	if m.Sender.Username != "knarfeh" {
+		return
+	}
+	uniqueUser := telebot.redisClient.Client.SCard("status:unique-user").Val()
+	result := ServerStatus(uniqueUser)
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, result)
+	telebot.redisClient.Client.SAdd("status:status-unique-user", m.Sender.Username)
+}

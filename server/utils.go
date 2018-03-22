@@ -60,6 +60,7 @@ func Tags2String(tags []domain.Tag) string {
 
 // String2TagSlice ...
 func String2TagSlice(tagstring string) []string {
+	fmt.Printf("Got tagstring: %s\n", tagstring)
 	if !strings.Contains(tagstring, "#") {
 		tagstring = ""
 	} else {
@@ -121,5 +122,11 @@ I will help you search telegram group, channel, bot, people. You can also submit
 
   i.e /submit searchtelegramchannel
 `
+	return result
+}
+
+// GetServerStatus ...
+func ServerStatus(uniqueUser int64) string {
+	result := fmt.Sprintf("Unique user: %d", uniqueUser)
 	return result
 }
