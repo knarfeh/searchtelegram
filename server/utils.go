@@ -124,9 +124,3 @@ I will help you search telegram group, channel, bot, people. You can also submit
 `
 	return result
 }
-
-// GetServerStatus ...
-func ServerStatus(uniqueUser int64) string {
-	result := fmt.Sprintf("Unique user: %d", uniqueUser)
-	return result
-}

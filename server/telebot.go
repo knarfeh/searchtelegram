@@ -192,9 +192,32 @@ func (telebot *TeleBot) status(m *tb.Message) {
 	if m.Sender.Username != "knarfeh" {
 		return
 	}
-	uniqueUser := telebot.redisClient.Client.SCard("status:unique-user").Val()
-	result := ServerStatus(uniqueUser)
-	fmt.Println(m.Sender)
+	result := telebot.serverStatus()
 	telebot.tb.Send(m.Sender, result)
 	telebot.redisClient.Client.SAdd("status:status-unique-user", m.Sender.Username)
+}
+
+// serverStatus ...
+func (telebot *TeleBot) serverStatus() string {
+	uniqueUser := telebot.redisClient.Client.SCard("status:unique-user").Val()
+	uniqueUserStr := fmt.Sprintf("Unique user: %d\n", uniqueUser)
+
+	searchUniqueUser := telebot.redisClient.Client.SCard("status:search-unique-user").Val()
+	searchUniqueUserStr := fmt.Sprintf("Unique user who input /search: %d\n", searchUniqueUser)
+
+	getUniqueUser := telebot.redisClient.Client.SCard("status:get-unique-user").Val()
+	getUniqueUserStr := fmt.Sprintf("Unique user who input /get: %d\n", getUniqueUser)
+
+	submitUniqueUser := telebot.redisClient.Client.SCard("status:submit-unique-user").Val()
+	submitUniqueUserStr := fmt.Sprintf("Unique user who input /submit: %d\n", submitUniqueUser)
+
+	pingUniqueUser := telebot.redisClient.Client.SCard("status:ping-unique-user").Val()
+	pingUniqueUserStr := fmt.Sprintf("Unique user who input /ping: %d\n", pingUniqueUser)
+
+	statusUniqueUser := telebot.redisClient.Client.SCard("status:ping-unique-user").Val()
+	statusUniqueUserStr := fmt.Sprintf("Unique user who input /status: %d\n", statusUniqueUser)
+
+	// TODO: total items(from elasticsearch), leaderboard, total tag
+
+	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + statusUniqueUserStr
 }
