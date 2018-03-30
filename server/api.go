@@ -12,6 +12,7 @@ import (
 
 	"github.com/labstack/echo"
 	elastic "gopkg.in/olivere/elastic.v5"
+	"gopkg.in/telegram-bot-api.v4"
 )
 
 // API is a defined as struct bundle
@@ -24,6 +25,7 @@ var OKResponse = map[string]interface{}{"ok": true}
 
 // Bind attaches api routes
 func (api *API) Bind(group *echo.Group) {
+	group.POST("/tgbot", api.TgBotWebhook)
 	group.PUT("/v1/tg", api.UpdateTgResource)
 	group.POST("/v1/tg", api.CreateTgResource)
 	group.GET("/v1/tg/:tgID", api.GetTgResource)
@@ -171,6 +173,23 @@ func (api *API) UpdateTgResource(c echo.Context) error {
 		// TODO: Handle error
 		panic(err)
 	}
-	app.Engine.Logger.Infof("New version of tgResource %q is now %d", updateResult.Id, updateResult.Version)
+	app.Engine.Logger.Printf("New version of tgResource %q is now %d", updateResult.Id, updateResult.Version)
 	return c.JSON(http.StatusOK, updateResult)
+}
+
+// TgBotWebhook ...
+func (api *API) TgBotWebhook(c echo.Context) error {
+	app := c.Get("app").(*App)
+
+	update := &tgbotapi.Update{}
+	if err := c.Bind(update); err != nil {
+		return err
+	}
+
+	messageString, _ := json.Marshal(update)
+	app.Engine.Logger.Printf("updateString: %s", messageString)
+
+	result := IncommingUpdate(update, app)
+	app.Engine.Logger.Printf("result: %s", result)
+	return c.JSON(http.StatusOK, OKResponse)
 }
