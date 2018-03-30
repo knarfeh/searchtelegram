@@ -10,3 +10,4 @@
 container-data/
 envs/secret.env
 notes/
+conf/gobackup.yaml

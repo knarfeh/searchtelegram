@@ -52,7 +52,19 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 		redisClient: redisClient,
 	}
 
-	// TODO: gobackup, pagination, suggestion, redisearch, auto https, telebot diagnose
+	// TODO:
+	// long polling -> webhook,
+	// worker add telebot
+	// pagination,
+	// suggestion,
+	// redisearch,
+	// k8s (cronjob backup in the future, and backup etcd)
+	// auto https(upload to s3, download automaticly),
+	// telebot diagnose
+	// e2e test
+	// k8s
+	// keepalived: https://www.digitalocean.com/community/tutorials/how-to-set-up-highly-available-web-servers-with-keepalived-and-floating-ips-on-ubuntu-14-04
+	// https://jimmysong.io/kubernetes-handbook/practice/edge-node-configuration.html
 	b.Handle("/start", telebot.start)
 	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)
