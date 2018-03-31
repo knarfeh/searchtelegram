@@ -11,8 +11,9 @@ import (
 	"github.com/knarfeh/searchtelegram/server/domain"
 
 	"github.com/labstack/echo"
+	tb "github.com/tucnak/telebot"
 	elastic "gopkg.in/olivere/elastic.v5"
-	"gopkg.in/telegram-bot-api.v4"
+	// "gopkg.in/telegram-bot-api.v4"
 )
 
 // API is a defined as struct bundle
@@ -181,7 +182,7 @@ func (api *API) UpdateTgResource(c echo.Context) error {
 func (api *API) TgBotWebhook(c echo.Context) error {
 	app := c.Get("app").(*App)
 
-	update := &tgbotapi.Update{}
+	update := &tb.Update{}
 	if err := c.Bind(update); err != nil {
 		return err
 	}
@@ -189,7 +190,7 @@ func (api *API) TgBotWebhook(c echo.Context) error {
 	messageString, _ := json.Marshal(update)
 	app.Engine.Logger.Printf("updateString: %s", messageString)
 
-	result := IncommingUpdate(update, app)
-	app.Engine.Logger.Printf("result: %s", result)
+	app.TgBot.incommingUpdate(update, app)
+	// app.Engine.Logger.Printf("result: %s", result)
 	return c.JSON(http.StatusOK, OKResponse)
 }

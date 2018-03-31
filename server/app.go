@@ -26,6 +26,7 @@ type App struct {
 	API         *API
 	ESClient    *ESClient
 	RedisClient *RedisClient
+	TgBot       *Bot
 }
 
 // NewApp returns initialized struct
@@ -66,6 +67,9 @@ func NewApp(opts ...AppOptions) *App {
 	REDISPORT, _ := conf.String("REDISPORT")
 	redis := NewRedisClient(REDISHOST, REDISPORT)
 
+	token, _ := conf.String("TGBOTTOKEN")
+	tgbot, _ := NewBot(token)
+
 	// Make an engine
 	engine := echo.New()
 
@@ -100,6 +104,7 @@ func NewApp(opts ...AppOptions) *App {
 		),
 		ESClient:    es,
 		RedisClient: redis,
+		TgBot:       tgbot,
 	}
 
 	// Map app and uuid for every requests
