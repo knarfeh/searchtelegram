@@ -52,7 +52,7 @@ services:
     networks:
       - searchtelegram
   redis:
-    image: "redis:alpine"
+    image: "redislabs/redisearch:latest"
     volumes:
       # - ./container-data/redis:/data
       - ../searchtelegrambackupdata/redis/st-redis:/data

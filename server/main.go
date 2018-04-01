@@ -59,14 +59,17 @@ func RunWorker(c *cli.Context) {
 
 	fmt.Println("Diagnose...")
 	redisClient := hauler.redisClient
+	redisearchClient := hauler.redisearchClient
 	esClient := hauler.esClient
 	reporter, _ := diagnose.New()
 	reporter.Add(redisClient)
+	reporter.Add(redisearchClient)
 	reporter.Add(esClient)
 	reporterResult := reporter.Check()
 	fmt.Println(reporterResult)
 
-	hauler.Query2ES()
+	go hauler.Submit2ES()
+	go hauler.Search2Redisearch()
 	hauler.tb.Start()
 }
 
@@ -80,9 +83,11 @@ func RunTelebot(c *cli.Context) {
 
 	fmt.Println("Diagnose...")
 	redisClient := tgBot.redisClient
+	redisearchClient := tgBot.redisearchClient
 	esClient := tgBot.esClient
 	reporter, _ := diagnose.New()
 	reporter.Add(redisClient) // TODO: add telebot Client???
+	reporter.Add(redisearchClient)
 	reporter.Add(esClient)
 	reporterResult := reporter.Check()
 	fmt.Println(reporterResult)

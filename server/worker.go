@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/RedisLabs/redisearch-go/redisearch"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -25,11 +26,12 @@ import (
 
 // Hauler ...
 type Hauler struct {
-	esClient    *ESClient
-	redisClient *RedisClient
-	s3Client    *S3Client
-	tb          *tb.Bot
-	conf        *config.Config
+	esClient         *ESClient
+	redisClient      *RedisClient
+	redisearchClient *RedisearchClient
+	s3Client         *S3Client
+	tb               *tb.Bot
+	conf             *config.Config
 }
 
 type tgMeInfo struct {
@@ -58,6 +60,7 @@ func CreateConsumer(conf *config.Config) (*Hauler, error) {
 		},
 	)
 	redisClient := NewRedisClient(REDISHOST, REDISPORT)
+	redisearchClient := NewRedisearchClient(REDISHOST, REDISPORT)
 	s3Client := NewS3Client(AWSACCESSKEY, AWSSECRETKEY, AWSREGION)
 
 	b, err := tb.NewBot(tb.Settings{
@@ -69,18 +72,18 @@ func CreateConsumer(conf *config.Config) (*Hauler, error) {
 	}
 
 	return &Hauler{
-		esClient:    es,
-		redisClient: redisClient,
-		s3Client:    s3Client,
-		tb:          b,
-		conf:        conf,
+		esClient:         es,
+		redisClient:      redisClient,
+		redisearchClient: redisearchClient,
+		s3Client:         s3Client,
+		tb:               b,
+		conf:             conf,
 	}, nil
 }
 
-// Query2ES subscribe redis channel, get data from t.me, save it to es
-// func
-func (hauler *Hauler) Query2ES() {
-	pubsub := hauler.redisClient.Client.Subscribe("searchtelegram")
+// Submit2ES subscribe redis channel st_submit, get data from t.me, save it to es
+func (hauler *Hauler) Submit2ES() {
+	pubsub := hauler.redisClient.Client.Subscribe("st_submit")
 	defer pubsub.Close()
 
 	substr, err := pubsub.ReceiveTimeout(time.Second)
@@ -93,15 +96,15 @@ func (hauler *Hauler) Query2ES() {
 	for {
 		select {
 		case msg := <-ch:
-			hauler.handleQuery(msg.Payload)
+			hauler.handleSubmit(msg.Payload)
 		}
 	}
 }
 
-// handleQuery ...
-func (hauler *Hauler) handleQuery(query string) {
+// handleSubmit ...
+func (hauler *Hauler) handleSubmit(submitStr string) {
 	tgResource := domain.NewTgResource()
-	if err := json.Unmarshal([]byte(query), &tgResource); err != nil {
+	if err := json.Unmarshal([]byte(submitStr), &tgResource); err != nil {
 		panic(err)
 	}
 
@@ -294,4 +297,67 @@ func (hauler *Hauler) getData(tgID string) (*tgMeInfo, error) {
 		ImgSrc:      imgPath,
 		Type:        tgType,
 	}, nil
+}
+
+// Search2Redisearch subscribe redis channel st_search
+func (hauler *Hauler) Search2Redisearch() {
+	pubsub := hauler.redisClient.Client.Subscribe("st_search")
+	defer pubsub.Close()
+
+	substr, err := pubsub.ReceiveTimeout(time.Second)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Redis subscribe: %s\n", substr)
+
+	ch := pubsub.Channel()
+	for {
+		select {
+		case msg := <-ch:
+			hauler.handleSearch(msg.Payload)
+		}
+	}
+}
+
+// handleSearch ...
+func (hauler *Hauler) handleSearch(searchStr string) {
+	size := 5
+	simpleQuery, _, _ := BuildESQuery(searchStr)
+
+	search := hauler.esClient.Client.Search().Index("telegram").Type("resource").Size(size)
+	searchResult, _ := search.Query(simpleQuery).Do(context.TODO())
+	if searchResult.TotalHits() < int64(size) {
+		size = int(searchResult.TotalHits())
+	}
+	hauler.hits2redisearch(*searchResult.Hits, size)
+
+	for from := size; int64(from) < searchResult.TotalHits(); {
+		search = hauler.esClient.Client.Search().Index("telegram").Type("resource").From(from).Size(size)
+		searchResult, _ = search.Query(simpleQuery).Do(context.TODO())
+		nowSize := size
+		if searchResult.TotalHits()-int64(from) < int64(size) {
+			fmt.Printf("size????? %d", size)
+			nowSize = int(searchResult.TotalHits() - int64(from))
+			fmt.Printf("nowSize????? %d", nowSize)
+		}
+		hauler.hits2redisearch(*searchResult.Hits, nowSize)
+		from = from + size
+	}
+	hauler.redisClient.Client.SAdd("redisearch:day-search", searchStr)
+}
+
+// hits2redisearch ...
+func (hauler *Hauler) hits2redisearch(hits elastic.SearchHits, size int) {
+	docs := make([]redisearch.Document, size)
+	for i, hit := range hits.Hits {
+		instance := domain.NewTgResource()
+		json.Unmarshal(*hit.Source, instance)
+		docs[i] = redisearch.NewDocument(instance.TgID, float32(hits.TotalHits-int64(i))/float32(hits.TotalHits)).Set("tgid", instance.TgID).Set("desc", instance.Desc).Set("title", instance.Title).Set("type", instance.Type).Set("tags", Tags2String(instance.Tags)).Set("tagsforsearch", Tags2String(instance.Tags))
+		if i >= size {
+			break
+		}
+	}
+	if err := hauler.redisearchClient.Client.IndexOptions(redisearch.DefaultIndexingOptions, docs...); err != nil {
+		fmt.Println(err)
+	}
 }

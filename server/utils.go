@@ -74,7 +74,7 @@ func String2TagSlice(tagstring string) []string {
 	return result
 }
 
-// TgResources2Str ...
+// Hits2Str ...
 func Hits2Str(hits elastic.SearchHits) string {
 	result := "🎉🎉🎉 " + fmt.Sprintf("%d", hits.TotalHits) + " results\n\n"
 	if hits.TotalHits == 1 {
@@ -123,4 +123,24 @@ I will help you search telegram group, channel, bot, people. You can also submit
   i.e /submit searchtelegramchannel
 `
 	return result
+}
+
+// BuildESQuery get payload string, return boolquery, simpleQuery, queryString
+func BuildESQuery(payload string) (*elastic.SimpleQueryStringQuery, *elastic.BoolQuery, string) {
+	splitPayload := strings.SplitN(payload, "#", 2)
+	queryString := splitPayload[0]
+	tagstring := ""
+	if len(splitPayload) == 2 {
+		tagstring = "#" + splitPayload[1]
+	}
+	boolQuery := elastic.NewBoolQuery()
+	for _, item := range String2TagSlice(tagstring) {
+		if item == " " || item == "" {
+			continue
+		}
+		boolQuery = boolQuery.Should(elastic.NewTermQuery("tags.name.keyword", item))
+	}
+	simpleQuery := elastic.NewSimpleQueryStringQuery(queryString)
+
+	return simpleQuery, boolQuery, queryString
 }
