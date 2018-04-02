@@ -107,8 +107,6 @@ func Redisearch2Str(docs []redisearch.Document, total int) string {
 		result = "🎉🎉🎉 " + fmt.Sprintf("%d", total) + " result\n\n"
 	}
 	for _, doc := range docs {
-		fmt.Printf("in for docs????")
-		fmt.Println(doc)
 		tgType := fmt.Sprintf("%s", doc.Properties["type"])
 		tgID := fmt.Sprintf("%s", doc.Properties["tgid"])
 		tgDesc := fmt.Sprintf("%s", doc.Properties["desc"])
@@ -120,7 +118,7 @@ func Redisearch2Str(docs []redisearch.Document, total int) string {
 		hitStr := emojiWithType(tgType) + "  @" + tgID + "\nDescription: " + strings.TrimSpace(tgDesc) + "\nTags: " + tgTags + "\n\n"
 		result = result + hitStr
 	}
-	return result
+	return result + sigStr()
 }
 
 // StartInfo ...
@@ -150,7 +148,7 @@ I will help you search telegram group, channel, bot, people. You can also submit
 }
 
 // BuildESQuery get payload string, return boolquery, simpleQuery, queryString
-func BuildESQuery(payload string) (*elastic.SimpleQueryStringQuery, *elastic.BoolQuery, string) {
+func BuildESQuery(payload string) (*elastic.SimpleQueryStringQuery, *elastic.BoolQuery, string, []string) {
 	splitPayload := strings.SplitN(payload, "#", 2)
 	queryString := splitPayload[0]
 	tagstring := ""
@@ -158,7 +156,8 @@ func BuildESQuery(payload string) (*elastic.SimpleQueryStringQuery, *elastic.Boo
 		tagstring = "#" + splitPayload[1]
 	}
 	boolQuery := elastic.NewBoolQuery()
-	for _, item := range String2TagSlice(tagstring) {
+	tagSlice := String2TagSlice(tagstring)
+	for _, item := range tagSlice {
 		if item == " " || item == "" {
 			continue
 		}
@@ -166,5 +165,5 @@ func BuildESQuery(payload string) (*elastic.SimpleQueryStringQuery, *elastic.Boo
 	}
 	simpleQuery := elastic.NewSimpleQueryStringQuery(queryString)
 
-	return simpleQuery, boolQuery, queryString
+	return simpleQuery, boolQuery, queryString, tagSlice
 }

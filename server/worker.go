@@ -134,6 +134,10 @@ func (hauler *Hauler) handleSubmit(submitStr string) {
 	}
 	_, err = hauler.esClient.Client.Index().OpType("create").Index("telegram").Type("resource").Id(tgID).BodyJson(tgResource).Do(context.TODO())
 	hauler.redisClient.Client.Set("tgid:"+tgID, "1", 0)
+	doc := redisearch.NewDocument(tgID, float32(1)/float32(10)).Set("tgid", tgID).Set("desc", tgResource.Desc).Set("title", tgResource.Title).Set("type", tgResource.Type).Set("tags", Tags2String(tgResource.Tags)).Set("tagsforsearch", Tags2String(tgResource.Tags))
+	if err := hauler.redisearchClient.Client.IndexOptions(redisearch.DefaultIndexingOptions, doc); err != nil {
+		fmt.Println(err)
+	}
 	hauler.send2stChannel(*tgResource)
 
 	if err != nil {
@@ -321,8 +325,15 @@ func (hauler *Hauler) Search2Redisearch() {
 
 // handleSearch ...
 func (hauler *Hauler) handleSearch(searchStr string) {
-	size := 5
-	simpleQuery, _, _ := BuildESQuery(searchStr)
+	fmt.Printf("Handle search string: %s\n", searchStr)
+	val := hauler.redisClient.Client.SIsMember("redisearch:cached-search-string", searchStr).Val()
+	if val {
+		fmt.Printf("search string: %s already in cache set\n", searchStr)
+		return
+	}
+
+	size := 500 // change to 5 when debug
+	simpleQuery, _, _, _ := BuildESQuery(searchStr)
 
 	search := hauler.esClient.Client.Search().Index("telegram").Type("resource").Size(size)
 	searchResult, _ := search.Query(simpleQuery).Do(context.TODO())
@@ -336,14 +347,12 @@ func (hauler *Hauler) handleSearch(searchStr string) {
 		searchResult, _ = search.Query(simpleQuery).Do(context.TODO())
 		nowSize := size
 		if searchResult.TotalHits()-int64(from) < int64(size) {
-			fmt.Printf("size????? %d", size)
 			nowSize = int(searchResult.TotalHits() - int64(from))
-			fmt.Printf("nowSize????? %d", nowSize)
 		}
 		hauler.hits2redisearch(*searchResult.Hits, nowSize)
 		from = from + size
 	}
-	hauler.redisClient.Client.SAdd("redisearch:day-search", searchStr)
+	hauler.redisClient.Client.SAdd("redisearch:cached-search-string", searchStr)
 }
 
 // hits2redisearch ...

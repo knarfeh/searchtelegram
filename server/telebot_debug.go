@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/knarfeh/searchtelegram/server/domain"
@@ -56,13 +57,10 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	}
 
 	// TODO:
-	// redis pipeline, if err != nil
-	// redisearch, suggestion
 	// k8s (cronjob backup in the future, and backup etcd)
 	// auto https(upload to s3, download automaticly),
-	// telebot diagnose
+	// leaderboard, suggestion
 	// e2e test
-	// k8s
 	// keepalived: https://www.digitalocean.com/community/tutorials/how-to-set-up-highly-available-web-servers-with-keepalived-and-floating-ips-on-ubuntu-14-04
 	// https://jimmysong.io/kubernetes-handbook/practice/edge-node-configuration.html
 	// worker add telebot
@@ -143,19 +141,29 @@ func (telebot *TeleBot) search(m *tb.Message) {
 		return
 	}
 
-	simpleQuery, boolQuery, queryString := BuildESQuery(m.Payload)
-	val := telebot.redisClient.Client.SIsMember("redisearch:day-search", queryString).Val()
+	simpleQuery, boolQuery, queryString, tagsSlice := BuildESQuery(m.Payload)
+	val := telebot.redisClient.Client.SIsMember("redisearch:cached-search-string", queryString).Val()
+	pipe := telebot.redisClient.Client.Pipeline()
+	pipe.SAdd("status:search-unique-user", m.Sender.Username)
+	pipe.Publish("st_search", string(queryString))
 	if val {
-		fmt.Printf("Go queryString %s in redis\n", queryString)
-		q := redisearch.NewQuery(queryString)
+		rediQueryStr := queryString
+		if len(tagsSlice) != 0 {
+			rediQueryStr = queryString + fmt.Sprintf(" @tags:{%s}", strings.Join(tagsSlice, "|"))
+		}
+		fmt.Printf("Go queryString %s in redis, rediQueryStr: %s\n", queryString, rediQueryStr)
+		q := redisearch.NewQuery(rediQueryStr)
 		docs, total, _ := telebot.redisearchClient.Client.Search(q)
 		result := Redisearch2Str(docs, total)
 		telebot.tb.Send(m.Sender, result)
-		telebot.redisClient.Client.SAdd("status:search-unique-user", m.Sender.Username)
-		telebot.redisClient.Client.Publish("st_search", string(queryString))
+
+		if _, err := pipe.Exec(); err != nil {
+			fmt.Println(err)
+		}
 		return
 	}
 
+	fmt.Printf("No cache in redis, search in elasticsearch, search str: %s", m.Payload)
 	search := telebot.esClient.Client.Search().Index("telegram").Type("resource").Size(20).PostFilter(boolQuery)
 	searchResult, err := search.Query(simpleQuery).Do(context.TODO())
 	if err != nil {
@@ -164,8 +172,10 @@ func (telebot *TeleBot) search(m *tb.Message) {
 
 	result := Hits2Str(*searchResult.Hits)
 	telebot.tb.Send(m.Sender, result)
-	telebot.redisClient.Client.SAdd("status:search-unique-user", m.Sender.Username)
-	telebot.redisClient.Client.Publish("st_search", string(queryString))
+
+	if _, err := pipe.Exec(); err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (telebot *TeleBot) help(m *tb.Message) {

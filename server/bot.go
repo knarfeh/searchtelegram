@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/RedisLabs/redisearch-go/redisearch"
 	"github.com/knarfeh/searchtelegram/server/domain"
 	tb "github.com/tucnak/telebot"
-	elastic "gopkg.in/olivere/elastic.v5"
 	"gopkg.in/telegram-bot-api.v4"
 )
 
@@ -177,20 +177,31 @@ func (b *Bot) search(m *tb.Message) {
 		b.Tgbot.Send(msg)
 		return
 	}
-	splitPayload := strings.SplitN(m.Payload, "#", 2)
-	queryString := splitPayload[0]
-	tagstring := ""
-	if len(splitPayload) == 2 {
-		tagstring = "#" + splitPayload[1]
-	}
-	boolQuery := elastic.NewBoolQuery()
-	for _, item := range String2TagSlice(tagstring) {
-		if item == " " || item == "" {
-			continue
+	simpleQuery, boolQuery, queryString, tagsSlice := BuildESQuery(m.Payload)
+	val := b.app.RedisClient.Client.SIsMember("redisearch:cached-search-string", queryString).Val()
+	pipe := b.app.RedisClient.Client.Pipeline()
+	pipe.SAdd("status:search-unique-user", m.Sender.Username)
+	pipe.Publish("st_search", string(queryString))
+	if val {
+		rediQueryStr := queryString
+		tagsStr := strings.Join(tagsSlice, "|")
+		if tagsStr != "" {
+			rediQueryStr = queryString + fmt.Sprintf(" @tags:{%s}", tagsStr)
 		}
-		boolQuery = boolQuery.Should(elastic.NewTermQuery("tags.name.keyword", item))
+		fmt.Printf("Go queryString %s in redis, rediQueryStr: %s\n", queryString, rediQueryStr)
+		q := redisearch.NewQuery(rediQueryStr)
+		docs, total, _ := b.app.RedisearchClient.Client.Search(q)
+		result := Redisearch2Str(docs, total)
+		msg := tgbotapi.NewMessage(m.Chat.ID, result)
+		b.Tgbot.Send(msg)
+
+		if _, err := pipe.Exec(); err != nil {
+			fmt.Println(err)
+		}
+		return
 	}
-	simpleQuery := elastic.NewSimpleQueryStringQuery(queryString)
+
+	fmt.Printf("No cache in redis, search in elasticsearch, search str: %s\n", m.Payload)
 	search := b.app.ESClient.Client.Search().Index("telegram").Type("resource").Size(20).PostFilter(boolQuery)
 	searchResult, err := search.Query(simpleQuery).Do(context.TODO())
 	if err != nil {
@@ -200,7 +211,9 @@ func (b *Bot) search(m *tb.Message) {
 	result := Hits2Str(*searchResult.Hits)
 	msg := tgbotapi.NewMessage(m.Chat.ID, result)
 	b.Tgbot.Send(msg)
-	b.app.RedisClient.Client.SAdd("status:search-unique-user", m.Sender.Username)
+	if _, err := pipe.Exec(); err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (b *Bot) help(m *tb.Message) {

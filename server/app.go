@@ -20,13 +20,14 @@ import (
 // all variables defined locally inside
 // this struct.
 type App struct {
-	Engine      *echo.Echo
-	Conf        *config.Config
-	React       *React
-	API         *API
-	ESClient    *ESClient
-	RedisClient *RedisClient
-	TgBot       *Bot
+	Engine           *echo.Echo
+	Conf             *config.Config
+	React            *React
+	API              *API
+	ESClient         *ESClient
+	RedisClient      *RedisClient
+	RedisearchClient *RedisearchClient
+	TgBot            *Bot
 }
 
 // NewApp returns initialized struct
@@ -66,6 +67,7 @@ func NewApp(opts ...AppOptions) *App {
 	REDISHOST, _ := conf.String("REDISHOST")
 	REDISPORT, _ := conf.String("REDISPORT")
 	redis := NewRedisClient(REDISHOST, REDISPORT)
+	redisearchClient := NewRedisearchClient(REDISHOST, REDISPORT)
 
 	token, _ := conf.String("TGBOTTOKEN")
 	tgbot, _ := NewBot(token)
@@ -102,9 +104,10 @@ func NewApp(opts ...AppOptions) *App {
 			conf.UBool("debug"),
 			engine,
 		),
-		ESClient:    es,
-		RedisClient: redis,
-		TgBot:       tgbot,
+		ESClient:         es,
+		RedisClient:      redis,
+		RedisearchClient: redisearchClient,
+		TgBot:            tgbot,
 	}
 
 	// Map app and uuid for every requests

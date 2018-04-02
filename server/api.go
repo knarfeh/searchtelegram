@@ -188,9 +188,8 @@ func (api *API) TgBotWebhook(c echo.Context) error {
 	}
 
 	messageString, _ := json.Marshal(update)
-	app.Engine.Logger.Printf("updateString: %s", messageString)
+	app.Engine.Logger.Printf("updateString: %s\n", messageString)
 
 	app.TgBot.incommingUpdate(update, app)
-	// app.Engine.Logger.Printf("result: %s", result)
 	return c.JSON(http.StatusOK, OKResponse)
 }
