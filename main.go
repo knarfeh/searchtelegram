@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/RedisLabs/redisearch-go/redisearch"
@@ -12,7 +11,7 @@ func main() {
 
 	// Create a client. By default a client is schemaless
 	// unless a schema is provided when creating the index
-	c := redisearch.NewClient("localhost:16379", "myIndex")
+	c := redisearch.NewClient("localhost:6379", "myIndex")
 
 	// Create a schema
 	sc := redisearch.NewSchema(redisearch.DefaultOptions).
@@ -25,7 +24,7 @@ func main() {
 
 	// Create the index with the given schema
 	if err := c.CreateIndex(sc); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	// Create a document with an id and given score
@@ -35,8 +34,8 @@ func main() {
 		Set("date", time.Now().Unix())
 
 	// Index the document. The API accepts multiple documents at a time
-	if err := c.Index(doc, doc); err != nil {
-		log.Fatal(err)
+	if err := c.Index(doc); err != nil {
+		panic(err)
 	}
 
 	// Searching with limit and sorting

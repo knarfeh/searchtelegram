@@ -252,23 +252,23 @@ func (b *Bot) status(m *tb.Message) {
 
 // serverStatus ...
 func (b *Bot) serverStatus() string {
-	uniqueUser := b.app.RedisClient.Client.SCard("status:unique-user").Val()
-	uniqueUserStr := fmt.Sprintf("Unique user: %d\n", uniqueUser)
+	pipe := b.app.RedisClient.Client.Pipeline()
+	uniqueUserPipe := pipe.SCard("status:unique-user")
+	searchUniqueUserPipe := pipe.SCard("status:search-unique-user")
+	getUniqueUserPipe := pipe.SCard("status:get-unique-user")
+	submitUniqueUserPipe := pipe.SCard("status:submit-unique-user")
+	pingUniqueUserPipe := pipe.SCard("status:ping-unique-user")
+	statusUniqueUserPipe := pipe.SCard("status:status-unique-user")
+	if _, err := pipe.Exec(); err != nil {
+		fmt.Println(err)
+	}
 
-	searchUniqueUser := b.app.RedisClient.Client.SCard("status:search-unique-user").Val()
-	searchUniqueUserStr := fmt.Sprintf("Unique user who input /search: %d\n", searchUniqueUser)
-
-	getUniqueUser := b.app.RedisClient.Client.SCard("status:get-unique-user").Val()
-	getUniqueUserStr := fmt.Sprintf("Unique user who input /get: %d\n", getUniqueUser)
-
-	submitUniqueUser := b.app.RedisClient.Client.SCard("status:submit-unique-user").Val()
-	submitUniqueUserStr := fmt.Sprintf("Unique user who input /submit: %d\n", submitUniqueUser)
-
-	pingUniqueUser := b.app.RedisClient.Client.SCard("status:ping-unique-user").Val()
-	pingUniqueUserStr := fmt.Sprintf("Unique user who input /ping: %d\n", pingUniqueUser)
-
-	statusUniqueUser := b.app.RedisClient.Client.SCard("status:ping-unique-user").Val()
-	statusUniqueUserStr := fmt.Sprintf("Unique user who input /status: %d\n", statusUniqueUser)
+	uniqueUserStr := fmt.Sprintf("Unique user: %d\n", uniqueUserPipe.Val())
+	searchUniqueUserStr := fmt.Sprintf("Unique user who input /search: %d\n", searchUniqueUserPipe.Val())
+	getUniqueUserStr := fmt.Sprintf("Unique user who input /get: %d\n", getUniqueUserPipe.Val())
+	submitUniqueUserStr := fmt.Sprintf("Unique user who input /submit: %d\n", submitUniqueUserPipe.Val())
+	pingUniqueUserStr := fmt.Sprintf("Unique user who input /ping: %d\n", pingUniqueUserPipe.Val())
+	statusUniqueUserStr := fmt.Sprintf("Unique user who input /status: %d\n", statusUniqueUserPipe.Val())
 
 	// TODO: total items(from elasticsearch), leaderboard, total tag
 

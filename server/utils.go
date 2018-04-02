@@ -101,22 +101,23 @@ func Hits2Str(hits elastic.SearchHits) string {
 }
 
 // Redisearch2Str ...
-func Redisearch2Str(docs []redisearch.Document) string {
-	result := ""
-	fmt.Printf("docs????")
-	fmt.Println(docs)
+func Redisearch2Str(docs []redisearch.Document, total int) string {
+	result := "🎉🎉🎉 " + fmt.Sprintf("%d", total) + " results\n\n"
+	if total == 1 {
+		result = "🎉🎉🎉 " + fmt.Sprintf("%d", total) + " result\n\n"
+	}
 	for _, doc := range docs {
-		fmt.Printf("docs????")
+		fmt.Printf("in for docs????")
 		fmt.Println(doc)
-		tgType := doc.Properties["type"]
-		tgID := doc.Properties["tgID"]
-		tgDesc := doc.Properties["desc"]
-		tgTags := doc.Properties["tags"]
+		tgType := fmt.Sprintf("%s", doc.Properties["type"])
+		tgID := fmt.Sprintf("%s", doc.Properties["tgid"])
+		tgDesc := fmt.Sprintf("%s", doc.Properties["desc"])
+		tgTags := fmt.Sprintf("%s", doc.Properties["tags"])
 
 		if tgDesc == "" {
 			tgDesc = "None"
 		}
-		hitStr := emojiWithType(tgType.(string)) + "  @" + tgID.(string) + "\nDescription: " + strings.TrimSpace(tgDesc.(string)) + "\nTags: " + tgTags.(string) + "\n\n"
+		hitStr := emojiWithType(tgType) + "  @" + tgID + "\nDescription: " + strings.TrimSpace(tgDesc) + "\nTags: " + tgTags + "\n\n"
 		result = result + hitStr
 	}
 	return result

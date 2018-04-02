@@ -11,4 +11,3 @@ container-data/
 envs/secret.env
 notes/
 conf/gobackup.yaml
-server/telebot_debug.go
