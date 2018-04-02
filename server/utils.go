@@ -6,6 +6,7 @@ import (
 	"github.com/knarfeh/searchtelegram/server/domain"
 	"strings"
 
+	"github.com/RedisLabs/redisearch-go/redisearch"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -97,6 +98,28 @@ func Hits2Str(hits elastic.SearchHits) string {
 		result = result + hitStr
 	}
 	return result + sigStr()
+}
+
+// Redisearch2Str ...
+func Redisearch2Str(docs []redisearch.Document) string {
+	result := ""
+	fmt.Printf("docs????")
+	fmt.Println(docs)
+	for _, doc := range docs {
+		fmt.Printf("docs????")
+		fmt.Println(doc)
+		tgType := doc.Properties["type"]
+		tgID := doc.Properties["tgID"]
+		tgDesc := doc.Properties["desc"]
+		tgTags := doc.Properties["tags"]
+
+		if tgDesc == "" {
+			tgDesc = "None"
+		}
+		hitStr := emojiWithType(tgType.(string)) + "  @" + tgID.(string) + "\nDescription: " + strings.TrimSpace(tgDesc.(string)) + "\nTags: " + tgTags.(string) + "\n\n"
+		result = result + hitStr
+	}
+	return result
 }
 
 // StartInfo ...
