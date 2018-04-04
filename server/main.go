@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"os"
 
 	"github.com/codegangsta/cli"
@@ -36,6 +41,11 @@ func Run(args []string) {
 			Name:   "telebot",
 			Usage:  "Runs telegram bot",
 			Action: RunTelebot,
+		},
+		{
+			Name:   "download_cert",
+			Usage:  "Download certificate file for https",
+			Action: Download,
 		},
 	}
 	app.Run(args)
@@ -93,4 +103,62 @@ func RunTelebot(c *cli.Context) {
 	fmt.Println(reporterResult)
 
 	tgBot.tb.Start()
+}
+
+func exitErrorf(msg string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, msg+"\n", args...)
+	os.Exit(1)
+}
+
+// Donwload ...
+func Download(c *cli.Context) {
+	conf, err := config.ParseYaml(confString)
+	conf.Env()
+	Must(err)
+
+	AWSACCESSKEY, _ := conf.String("AWSACCESSKEY")
+	AWSSECRETKEY, _ := conf.String("AWSSECRETKEY")
+	AWSREGION, _ := conf.String("AWSREGION")
+	creds := credentials.NewStaticCredentials(AWSACCESSKEY, AWSSECRETKEY, "")
+	_, err = creds.Get()
+	if err != nil {
+		fmt.Printf("bad credentials: %s\n", err)
+	}
+
+	sess, _ := session.NewSession(&aws.Config{
+		Credentials: creds,
+		Region:      &AWSREGION,
+	})
+
+	file, err := os.Create("searchtelegramdotcom.key")
+	if err != nil {
+		exitErrorf("Unable to open file %q, %v", err)
+	}
+	defer file.Close()
+
+	downloader := s3manager.NewDownloader(sess)
+	numBytes, err := downloader.Download(file,
+		&s3.GetObjectInput{
+			Bucket: aws.String("knarfeh-website-certs"),
+			Key:    aws.String("searchtelegramdotcom.key"),
+		})
+	if err != nil {
+		exitErrorf("Unable to download item %q, %v", "searchtelegramdotcom.key", err)
+	}
+	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
+
+	file, err = os.Create("searchtelegramdotcom_bundle.crt")
+	if err != nil {
+		exitErrorf("Unable to open file %q, %v", err)
+	}
+	defer file.Close()
+	numBytes, err = downloader.Download(file,
+		&s3.GetObjectInput{
+			Bucket: aws.String("knarfeh-website-certs"),
+			Key:    aws.String("searchtelegramdotcom_bundle.crt"),
+		})
+	if err != nil {
+		exitErrorf("Unable to download item %q, %v", "searchtelegramdotcom_bundle.crt", err)
+	}
+	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
 }
