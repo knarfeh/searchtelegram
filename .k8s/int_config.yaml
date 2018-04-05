@@ -22,7 +22,7 @@ metadata:
   name: searchtelegramint
   namespace: default
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       run: searchtelegramint
@@ -34,7 +34,7 @@ spec:
       containers:
       - name: searchtelegramint
         image: daocloud.io/knarfeh/searchtelegramprivate
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         env:
           - name: ESHOSTPORT
             value: http://int.searchtelegram.com:9200
@@ -65,6 +65,9 @@ spec:
         ports:
           - containerPort: 80
             protocol: TCP
+      imagePullSecrets:
+        - name: daocloud
+
 ---
 
 apiVersion: extensions/v1beta1
