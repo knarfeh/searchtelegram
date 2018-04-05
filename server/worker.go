@@ -61,10 +61,10 @@ func CreateConsumer(conf *config.Config) (*Hauler, error) {
 	)
 	redisClient := NewRedisClient(REDISHOST, REDISPORT)
 	redisearchClient := NewRedisearchClient(REDISHOST, REDISPORT)
-	s3Client := NewS3Client(AWSACCESSKEY, AWSSECRETKEY, AWSREGION)
+	s3Client := NewS3Client(strings.TrimSpace(AWSACCESSKEY), strings.TrimSpace(AWSSECRETKEY), strings.TrimSpace(AWSREGION))
 
 	b, err := tb.NewBot(tb.Settings{
-		Token:  TGBOTTOKEN,
+		Token:  strings.TrimSpace(TGBOTTOKEN),
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {

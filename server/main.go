@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"os"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/knarfeh/searchtelegram/server/diagnose"
@@ -118,8 +119,9 @@ func Download(c *cli.Context) {
 
 	AWSACCESSKEY, _ := conf.String("AWSACCESSKEY")
 	AWSSECRETKEY, _ := conf.String("AWSSECRETKEY")
-	AWSREGION, _ := conf.String("AWSREGION")
-	creds := credentials.NewStaticCredentials(AWSACCESSKEY, AWSSECRETKEY, "")
+	AWSREGION_WITHSPACE, _ := conf.String("AWSREGION")
+	AWSREGION := strings.TrimSpace(AWSREGION_WITHSPACE)
+	creds := credentials.NewStaticCredentials(strings.TrimSpace(AWSACCESSKEY), strings.TrimSpace(AWSSECRETKEY), "")
 	_, err = creds.Get()
 	if err != nil {
 		fmt.Printf("bad credentials: %s\n", err)

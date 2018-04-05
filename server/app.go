@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/elazarl/go-bindata-assetfs"
@@ -70,7 +71,7 @@ func NewApp(opts ...AppOptions) *App {
 	redisearchClient := NewRedisearchClient(REDISHOST, REDISPORT)
 
 	token, _ := conf.String("TGBOTTOKEN")
-	tgbot, _ := NewBot(token)
+	tgbot, _ := NewBot(strings.TrimSpace(token))
 
 	// Make an engine
 	engine := echo.New()

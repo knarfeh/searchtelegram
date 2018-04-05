@@ -3,7 +3,7 @@ LABEL maintainer="Frank He <knarfeh@outlook.com>"
 
 WORKDIR /go/src/github.com/knarfeh/searchtelegram/
 COPY . /go/src/github.com/knarfeh/searchtelegram/
-COPY ./conf/nginx.conf /etc/nginx/searchtelegram_nginx.conf
+COPY ./conf/nginx_nohttps.conf /etc/nginx/searchtelegram_nginx.conf
 
 ENV NVM_DIR /usr/local/nvm
 ENV NODE_VERSION 8.9.1

@@ -58,6 +58,7 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 
 	// TODO:
 	// k8s (cronjob backup in the future, and backup etcd)
+	// bugs: 0 results; support chinese?, language detection?
 	// auto https(upload to s3, download automaticly),
 	// leaderboard, suggestion
 	// e2e test

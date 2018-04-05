@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: searchtelegramint
+  namespace: default
+  labels:
+    run: searchtelegramint
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    run: searchtelegramint
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    run: searchtelegramint
+  name: searchtelegramint
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: searchtelegramint
+  template:
+    metadata:
+      labels:
+        run: searchtelegramint
+    spec:
+      containers:
+      - name: searchtelegramint
+        image: daocloud.io/knarfeh/searchtelegramprivate
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: ESHOSTPORT
+            value: http://int.searchtelegram.com:9200
+          - name: REDISHOST
+            value: "int.searchtelegram.com"
+          - name: REDISPORT
+            value: "16379"
+          - name: AWSACCESSKEY 
+            valueFrom:
+              secretKeyRef:
+                name: intsearchtelegramsecret
+                key: AWSACCESSKEY
+          - name: AWSSECRETKEY
+            valueFrom:
+              secretKeyRef:
+                name: intsearchtelegramsecret
+                key: AWSSECRETKEY
+          - name: AWSREGION
+            valueFrom:
+              secretKeyRef:
+                name: intsearchtelegramsecret
+                key: AWSREGION
+          - name: TGBOTTOKEN
+            valueFrom:
+              secretKeyRef:
+                name: intsearchtelegramsecret
+                key: TGBOTTOKEN
+        ports:
+          - containerPort: 80
+            protocol: TCP
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: searchtelegramint
+  namespace: default
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    kubernetes.io/ingress.class: "nginx"
+    ingress.kubernetes.io/limit-rps: "1"
+    ingress.kubernetes.io/enable-cors: "true"
+    ingress.kubernetes.io/rewrite-target: /
+    ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-ciphers: "ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE;"
+spec:
+  tls:
+  - hosts:
+    - int.searchtelegram.com
+    secretName: int-searchtelegramint-tls
+  rules:
+  - host: int.searchtelegram.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: searchtelegramint
+          servicePort: 80

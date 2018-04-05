@@ -24,6 +24,8 @@ services:
     volumes:
       - ./conf/es-kibana/prod/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - ./container-data/elasticsearch:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
     environment:
       ES_JAVA_OPTS: "-Xmx1g -Xms1g"
     networks:
