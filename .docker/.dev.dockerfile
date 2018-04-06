@@ -21,6 +21,7 @@ ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
 ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 RUN make build
+
 RUN apt update \
   && apt install nginx -y \
   && apt-get clean \
@@ -127,6 +128,6 @@ ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/
 
 RUN mkdir -p /var/log/supervisor /var/log/searchtelegram /tmp/images /var/nginx/cache/aws
 EXPOSE 80 5000
-# nginx -c /etc/nginx/searchtelegram_nginx.conf
+RUN chmod +x /*.sh
 
-CMD ["make", "serve"]
+CMD ["/searchtelegram.sh"]

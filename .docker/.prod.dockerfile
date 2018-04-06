@@ -28,7 +28,7 @@ FROM alpine:latest
 EXPOSE 80 5000
 
 RUN apk update && \
-  apk --no-cache add ca-certificates supervisor nginx openssl
+  apk --no-cache add ca-certificates supervisor nginx 
 
 # Docker Build Arguments
 ARG RESTY_VERSION="1.13.6.1"
@@ -123,7 +123,6 @@ COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/*.sh /
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/supervisord.conf /etc/supervisord.conf
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/nginx_nohttps.conf /etc/nginx/searchtelegram_nginx.conf
 COPY --from=builder /go/src/github.com/knarfeh/searchtelegram/conf/robots.txt /var/www/html/robots.txt
-RUN openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 RUN chmod +x /*.sh
 
 CMD ["/searchtelegram.sh"]

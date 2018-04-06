@@ -56,18 +56,6 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 		redisearchClient: redisearchClient,
 	}
 
-	// TODO:
-	// dns issue, cant access api.telegram.com
-	// k8s (cronjob backup in the future, and backup etcd)
-	// bugs: 0 results; support chinese?, language detection?
-	// auto https(upload to s3, download automaticly),
-	// leaderboard, suggestion
-	// e2e test
-	// keepalived: https://www.digitalocean.com/community/tutorials/how-to-set-up-highly-available-web-servers-with-keepalived-and-floating-ips-on-ubuntu-14-04
-	// https://jimmysong.io/kubernetes-handbook/practice/edge-node-configuration.html
-	// worker add telebot
-	// pagination,
-	// https certificate expired by statusbot
 	b.Handle("/start", telebot.start)
 	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)
@@ -81,6 +69,7 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	// b.Handle("/top", telebot.pong)     // TODO
 	b.Handle("/ping", telebot.pong)
 	b.Handle("/status", telebot.status)
+	b.Handle("/delete", telebot.delete)
 
 	return telebot, nil
 }
@@ -247,4 +236,10 @@ func (telebot *TeleBot) serverStatus() string {
 	// TODO: total items(from elasticsearch), leaderboard, total tag
 
 	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + statusUniqueUserStr
+}
+
+// Private. Delete an item
+func (telebot *TeleBot) delete(m *tb.Message) {
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "delete an item, TODO")
 }

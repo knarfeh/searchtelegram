@@ -22,7 +22,7 @@ metadata:
   name: searchtelegramprod
   namespace: default
 spec:
-  replicas: 2
+  replicas: 5
   selector:
     matchLabels:
       run: searchtelegramprod
@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
       - name: searchtelegramprod
-        image: daocloud.io/knarfeh/searchtelegramprivate:feat-knarfeh-dev-0516f20
+        image: daocloud.io/knarfeh/searchtelegramprivate:latest
         imagePullPolicy: Always
         env:
           - name: ESHOSTPORT
