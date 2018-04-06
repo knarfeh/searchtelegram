@@ -57,6 +57,7 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	}
 
 	// TODO:
+	// dns issue, cant access api.telegram.com
 	// k8s (cronjob backup in the future, and backup etcd)
 	// bugs: 0 results; support chinese?, language detection?
 	// auto https(upload to s3, download automaticly),
@@ -66,6 +67,7 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	// https://jimmysong.io/kubernetes-handbook/practice/edge-node-configuration.html
 	// worker add telebot
 	// pagination,
+	// https certificate expired by statusbot
 	b.Handle("/start", telebot.start)
 	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)

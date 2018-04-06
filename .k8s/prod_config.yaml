@@ -22,7 +22,7 @@ metadata:
   name: searchtelegramprod
   namespace: default
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       run: searchtelegramprod
@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
       - name: searchtelegramprod
-        image: daocloud.io/knarfeh/searchtelegramprivate
+        image: daocloud.io/knarfeh/searchtelegramprivate:feat-knarfeh-dev-0516f20
         imagePullPolicy: Always
         env:
           - name: ESHOSTPORT
@@ -78,7 +78,6 @@ metadata:
   annotations:
     kubernetes.io/tls-acme: "true"
     kubernetes.io/ingress.class: "nginx"
-    ingress.kubernetes.io/limit-rps: "1"
     ingress.kubernetes.io/enable-cors: "true"
     ingress.kubernetes.io/rewrite-target: /
     ingress.kubernetes.io/ssl-redirect: "true"

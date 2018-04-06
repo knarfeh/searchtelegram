@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: nujeh.com
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: http://knarfeh.com
+spec:
+  rules:
+  - host: nujeh.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: searchtelegramprod
+          servicePort: 80
