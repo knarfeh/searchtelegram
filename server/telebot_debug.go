@@ -257,8 +257,8 @@ func (telebot *TeleBot) serverStats() string {
 	esDocCountStr := fmt.Sprintf("ES Document count: %d\n", docCount)
 
 	tagCountAgg := elastic.NewCardinalityAggregation().Field("tags.name.keyword")
-	aggBuilder := telebot.esClient.Client.Search().Index("telegram").Type("resource").Query(elastic.NewMatchAllQuery())
-	aggBuilder = aggBuilder.Aggregation("tagsCardinality", tagCountAgg)
+	aggBuilder := telebot.esClient.Client.Search().Index("telegram").Type("resource").Query(elastic.NewMatchAllQuery()).Size(0)
+	aggBuilder = aggBuilder.Aggregation("tagsCardinality", tagCountAgg).Size(0)
 	searchResult, _ := aggBuilder.Do(context.TODO())
 	tagCountResult, _ := searchResult.Aggregations.Cardinality("tagsCardinality")
 	tagsCountStr := fmt.Sprintf("Tags count: %v\n", *tagCountResult.Value)

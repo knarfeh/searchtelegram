@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
       - name: searchtelegramprod
-        image: daocloud.io/knarfeh/searchtelegramprivate:feat-knarfeh-dev-63b4b52
+        image: daocloud.io/knarfeh/searchtelegramprivate:feat-knarfeh-dev-d3f3f24
         imagePullPolicy: Always
         env:
           - name: ESHOSTPORT
