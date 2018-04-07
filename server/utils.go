@@ -81,10 +81,10 @@ func Hits2Str(hits elastic.SearchHits) string {
 	if hits.TotalHits == 1 {
 		result = "🎉🎉🎉 " + fmt.Sprintf("%d", hits.TotalHits) + " result\n\n"
 	}
-	hitStr := ""
 	if hits.TotalHits == 0 {
 		return "😱Sorry, but we don't find any result"
 	}
+	hitStr := ""
 	for _, hit := range hits.Hits {
 		hitStr = ""
 		instance := domain.NewTgResource()
@@ -105,6 +105,9 @@ func Redisearch2Str(docs []redisearch.Document, total int) string {
 	result := "🎉🎉🎉 " + fmt.Sprintf("%d", total) + " results\n\n"
 	if total == 1 {
 		result = "🎉🎉🎉 " + fmt.Sprintf("%d", total) + " result\n\n"
+	}
+	if total == 0 {
+		return "😱Sorry, but we don't find any result"
 	}
 	for _, doc := range docs {
 		tgType := fmt.Sprintf("%s", doc.Properties["type"])
