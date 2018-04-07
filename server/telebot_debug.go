@@ -12,7 +12,7 @@ import (
 
 	"github.com/RedisLabs/redisearch-go/redisearch"
 	tb "github.com/tucnak/telebot"
-	// elastic "gopkg.in/olivere/elastic.v5"
+	elastic "gopkg.in/olivere/elastic.v5"
 )
 
 // TeleBot encapsulation telebot, redis(for search)
@@ -60,15 +60,25 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	b.Handle("/get", telebot.get)
 	b.Handle("/submit", telebot.submit)
 	b.Handle("/search", telebot.search)
+	b.Handle("/s", telebot.search)
 	b.Handle("/help", telebot.start)
 	// b.Handle("/tips", telebot.tips)
+
 	b.Handle("/search_group", telebot.searchGroup)
+	b.Handle("/s_group", telebot.searchGroup)
+
 	b.Handle("/search_bot", telebot.searchBot)
+	b.Handle("/s_bot", telebot.searchBot)
+
 	b.Handle("/search_channel", telebot.searchChannel)
+	b.Handle("/s_channel", telebot.searchChannel)
+
 	b.Handle("/search_people", telebot.searchChannel)
-	// b.Handle("/top", telebot.pong)     // TODO
+	b.Handle("/s_people", telebot.searchChannel)
+
+	// b.Handle("/top", telebot.top)
 	b.Handle("/ping", telebot.pong)
-	b.Handle("/status", telebot.status)
+	b.Handle("/stats", telebot.stats)
 	b.Handle("/delete", telebot.delete)
 
 	return telebot, nil
@@ -155,7 +165,7 @@ func (telebot *TeleBot) search(m *tb.Message) {
 		return
 	}
 
-	fmt.Printf("No cache in redis, search in elasticsearch, search str: %s", m.Payload)
+	fmt.Printf("No cache in redis, search in elasticsearch, search str: %s\n", m.Payload)
 	search := telebot.esClient.Client.Search().Index("telegram").Type("resource").Size(20).PostFilter(boolQuery)
 	searchResult, err := search.Query(simpleQuery).Do(context.TODO())
 	if err != nil {
@@ -170,26 +180,32 @@ func (telebot *TeleBot) search(m *tb.Message) {
 	}
 }
 
+func (telebot *TeleBot) tags(m *tb.Message) {
+	// search group balabala
+	fmt.Println(m.Sender)
+	telebot.tb.Send(m.Sender, "tags, TODO\n")
+}
+
 func (telebot *TeleBot) help(m *tb.Message) {
 	// search group balabala
 	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "help, TODO")
+	telebot.tb.Send(m.Sender, "help, TODO\n")
 }
 
 func (telebot *TeleBot) searchGroup(m *tb.Message) {
 	// search balabala
 	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "search group, TODO")
+	telebot.tb.Send(m.Sender, "search group, TODO\n")
 }
 
 func (telebot *TeleBot) searchBot(m *tb.Message) {
 	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "search bot, TODO")
+	telebot.tb.Send(m.Sender, "search bot, TODO\n")
 }
 
 func (telebot *TeleBot) searchChannel(m *tb.Message) {
 	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "search channel, TODO")
+	telebot.tb.Send(m.Sender, "search channel, TODO\n")
 }
 
 // Private. For test purpose
@@ -204,17 +220,17 @@ func (telebot *TeleBot) pong(m *tb.Message) {
 }
 
 // Private. Gathering server info
-func (telebot *TeleBot) status(m *tb.Message) {
+func (telebot *TeleBot) stats(m *tb.Message) {
 	if m.Sender.Username != "knarfeh" {
 		return
 	}
-	result := telebot.serverStatus()
+	result := telebot.serverStats()
 	telebot.tb.Send(m.Sender, result)
 	telebot.redisClient.Client.SAdd("status:status-unique-user", m.Sender.Username)
 }
 
 // serverStatus ...
-func (telebot *TeleBot) serverStatus() string {
+func (telebot *TeleBot) serverStats() string {
 	pipe := telebot.redisClient.Client.Pipeline()
 	uniqueUserPipe := pipe.SCard("status:unique-user")
 	searchUniqueUserPipe := pipe.SCard("status:search-unique-user")
@@ -222,6 +238,7 @@ func (telebot *TeleBot) serverStatus() string {
 	submitUniqueUserPipe := pipe.SCard("status:submit-unique-user")
 	pingUniqueUserPipe := pipe.SCard("status:ping-unique-user")
 	statusUniqueUserPipe := pipe.SCard("status:status-unique-user")
+	cachedStringsPipe := pipe.SMembers("redisearch:cached-search-string")
 	if _, err := pipe.Exec(); err != nil {
 		fmt.Println(err)
 	}
@@ -232,10 +249,21 @@ func (telebot *TeleBot) serverStatus() string {
 	submitUniqueUserStr := fmt.Sprintf("Unique user who input /submit: %d\n", submitUniqueUserPipe.Val())
 	pingUniqueUserStr := fmt.Sprintf("Unique user who input /ping: %d\n", pingUniqueUserPipe.Val())
 	statusUniqueUserStr := fmt.Sprintf("Unique user who input /status: %d\n", statusUniqueUserPipe.Val())
+	cachedSearchStr := fmt.Sprintf("Cached search string:\n %s\n", strings.Join(cachedStringsPipe.Val(), ", "))
 
-	// TODO: total items(from elasticsearch), leaderboard, total tag
+	// TODO: leaderboard
 
-	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + statusUniqueUserStr
+	docCount, _ := telebot.esClient.Client.Count("telegram").Do(context.TODO())
+	esDocCountStr := fmt.Sprintf("ES Document count: %d\n", docCount)
+
+	tagCountAgg := elastic.NewCardinalityAggregation().Field("tags.name.keyword")
+	aggBuilder := telebot.esClient.Client.Search().Index("telegram").Type("resource").Query(elastic.NewMatchAllQuery())
+	aggBuilder = aggBuilder.Aggregation("tagsCardinality", tagCountAgg)
+	searchResult, _ := aggBuilder.Do(context.TODO())
+	tagCountResult, _ := searchResult.Aggregations.Cardinality("tagsCardinality")
+	tagsCountStr := fmt.Sprintf("Tags count: %v\n", *tagCountResult.Value)
+
+	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + statusUniqueUserStr + cachedSearchStr + "\n" + esDocCountStr + tagsCountStr
 }
 
 // Private. Delete an item

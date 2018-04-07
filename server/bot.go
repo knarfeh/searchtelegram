@@ -10,6 +10,7 @@ import (
 	"github.com/RedisLabs/redisearch-go/redisearch"
 	"github.com/knarfeh/searchtelegram/server/domain"
 	tb "github.com/tucnak/telebot"
+	elastic "gopkg.in/olivere/elastic.v5"
 	"gopkg.in/telegram-bot-api.v4"
 )
 
@@ -38,14 +39,26 @@ func NewBot(token string) (*Bot, error) {
 	bot.Handle("/get", bot.get)
 	bot.Handle("/submit", bot.submit)
 	bot.Handle("/search", bot.search)
+	bot.Handle("/s", bot.search)
+	// bot.Handle("/tags", bot.tags)
 	bot.Handle("/help", bot.help)
 	// b.Handle("/tips", telebot.tips)
+
 	bot.Handle("/search_group", bot.searchGroup)
+	bot.Handle("/s_group", bot.searchGroup)
+
 	bot.Handle("/search_bot", bot.searchBot)
+	bot.Handle("/s_bot", bot.searchBot)
+
 	bot.Handle("/search_channel", bot.searchChannel)
+	bot.Handle("/s_channel", bot.searchChannel)
+
 	bot.Handle("/search_people", bot.searchChannel)
+	bot.Handle("/s_people", bot.searchChannel)
+
+	// bot.Handle("/delete", bot.delete)
 	bot.Handle("/ping", bot.pong)
-	bot.Handle("/status", bot.status)
+	bot.Handle("/stats", bot.stats)
 	return bot, nil
 }
 
@@ -253,18 +266,18 @@ func (b *Bot) pong(m *tb.Message) {
 }
 
 // Private. Gathering server info
-func (b *Bot) status(m *tb.Message) {
+func (b *Bot) stats(m *tb.Message) {
 	if m.Sender.Username != "knarfeh" {
 		return
 	}
-	result := b.serverStatus()
+	result := b.serverStats()
 	msg := tgbotapi.NewMessage(m.Chat.ID, result)
 	b.Tgbot.Send(msg)
 	b.app.RedisClient.Client.SAdd("status:status-unique-user", m.Sender.Username)
 }
 
 // serverStatus ...
-func (b *Bot) serverStatus() string {
+func (b *Bot) serverStats() string {
 	pipe := b.app.RedisClient.Client.Pipeline()
 	uniqueUserPipe := pipe.SCard("status:unique-user")
 	searchUniqueUserPipe := pipe.SCard("status:search-unique-user")
@@ -272,6 +285,7 @@ func (b *Bot) serverStatus() string {
 	submitUniqueUserPipe := pipe.SCard("status:submit-unique-user")
 	pingUniqueUserPipe := pipe.SCard("status:ping-unique-user")
 	statusUniqueUserPipe := pipe.SCard("status:status-unique-user")
+	cachedStringsPipe := pipe.SMembers("redisearch:cached-search-string")
 	if _, err := pipe.Exec(); err != nil {
 		fmt.Println(err)
 	}
@@ -282,8 +296,19 @@ func (b *Bot) serverStatus() string {
 	submitUniqueUserStr := fmt.Sprintf("Unique user who input /submit: %d\n", submitUniqueUserPipe.Val())
 	pingUniqueUserStr := fmt.Sprintf("Unique user who input /ping: %d\n", pingUniqueUserPipe.Val())
 	statusUniqueUserStr := fmt.Sprintf("Unique user who input /status: %d\n", statusUniqueUserPipe.Val())
+	cachedSearchStr := fmt.Sprintf("Cached search string:\n %s\n", strings.Join(cachedStringsPipe.Val(), ", "))
 
-	// TODO: total items(from elasticsearch), leaderboard, total tag
+	// TODO: leaderboard
 
-	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + statusUniqueUserStr
+	docCount, _ := b.app.ESClient.Client.Count("telegram").Do(context.TODO())
+	esDocCountStr := fmt.Sprintf("ES Document count: %d\n", docCount)
+
+	tagCountAgg := elastic.NewCardinalityAggregation().Field("tags.name.keyword")
+	aggBuilder := b.app.ESClient.Client.Search().Index("telegram").Type("resource").Query(elastic.NewMatchAllQuery())
+	aggBuilder = aggBuilder.Aggregation("tagsCardinality", tagCountAgg)
+	searchResult, _ := aggBuilder.Do(context.TODO())
+	tagCountResult, _ := searchResult.Aggregations.Cardinality("tagsCardinality")
+	tagsCountStr := fmt.Sprintf("Tags count: %v\n", *tagCountResult.Value)
+
+	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + statusUniqueUserStr + cachedSearchStr + "\n" + esDocCountStr + tagsCountStr
 }
