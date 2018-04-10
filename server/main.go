@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/knarfeh/searchtelegram/server/diagnose"
@@ -81,6 +82,7 @@ func RunWorker(c *cli.Context) {
 
 	go hauler.Submit2ES()
 	go hauler.Search2Redisearch()
+	go hauler.Scheduler(30 * time.Second)
 	hauler.tb.Start()
 }
 

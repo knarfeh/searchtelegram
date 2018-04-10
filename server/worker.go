@@ -95,8 +95,14 @@ func (hauler *Hauler) Submit2ES() {
 	ch := pubsub.Channel()
 	for {
 		select {
-		case msg := <-ch:
-			hauler.handleSubmit(msg.Payload)
+		case <-ch:
+			// hauler.handleSubmit(msg.Payload)
+			fmt.Println("Got submit")
+			submitStr := hauler.redisClient.Client.RPop("st_submit_list").Val()
+			if submitStr != "" {
+				fmt.Printf("Got submit str from list: %s\n", submitStr)
+				hauler.handleSubmit(submitStr)
+			}
 		}
 	}
 }
@@ -368,5 +374,16 @@ func (hauler *Hauler) hits2redisearch(hits elastic.SearchHits, size int) {
 	}
 	if err := hauler.redisearchClient.Client.IndexOptions(redisearch.DefaultIndexingOptions, docs...); err != nil {
 		fmt.Println(err)
+	}
+}
+
+// Scheduler ...
+func (hauler *Hauler) Scheduler(refresh time.Duration) {
+	for i := 1; ; i++ {
+		fmt.Println("wait 30 seconds")
+
+		select {
+		case <-time.After(refresh):
+		}
 	}
 }

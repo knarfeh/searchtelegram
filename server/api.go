@@ -149,7 +149,8 @@ func (api *API) CreateTgResource(c echo.Context) error {
 
 	tgResouceString, _ := json.Marshal(tgResource)
 	app.Engine.Logger.Infof("Create tg resource: %s", tgResouceString)
-	err := app.RedisClient.Client.Publish("searchtelegram", string(tgResouceString)).Err()
+	err := app.RedisClient.Client.Publish("st_submit", string(1)).Err()
+	app.RedisClient.Client.LPush("st_submit_list", string(tgResouceString))
 	if err != nil {
 		panic(err)
 	}

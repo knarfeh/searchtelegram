@@ -161,19 +161,22 @@ func (b *Bot) submit(m *tb.Message) {
 	if m.Payload == "" {
 		msg := tgbotapi.NewMessage(m.Chat.ID, "Please input telegram ID, like: /submit telegram")
 		b.Tgbot.Send(msg)
+		b.app.RedisClient.Client.SAdd("status:submit-unique-user", m.Sender.Username)
 		return
 	}
 	tgIDExist, _ := b.app.RedisClient.Client.Get("tgid:" + m.Payload).Result()
 	if tgIDExist != "" {
 		msg := tgbotapi.NewMessage(m.Chat.ID, "Ha, this id already exist, you could get detailed information with /get "+m.Payload)
 		b.Tgbot.Send(msg)
+		b.app.RedisClient.Client.SAdd("status:submit-unique-user", m.Sender.Username)
 		return
 	}
 	tgResource := domain.NewTgResource()
 	tgResource.TgID = m.Payload
 	tgResouceString, _ := json.Marshal(tgResource)
 	fmt.Printf("Telegram, %s submit resource: %s\n", m.Sender.Username, tgResouceString)
-	err := b.app.RedisClient.Client.Publish("searchtelegram", string(tgResouceString)).Err()
+	err := b.app.RedisClient.Client.Publish("st_submit", string(1)).Err()
+	b.app.RedisClient.Client.LPush("st_submit_list", string(tgResouceString))
 	if err != nil {
 		panic(err)
 	}
