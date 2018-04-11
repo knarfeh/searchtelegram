@@ -191,6 +191,9 @@ func (api *API) TgBotWebhook(c echo.Context) error {
 	messageString, _ := json.Marshal(update)
 	app.Engine.Logger.Printf("updateString: %s\n", messageString)
 
-	app.TgBot.incommingUpdate(update, app)
-	return c.JSON(http.StatusOK, OKResponse)
+	resultChan := make(chan string, 1)
+	app.TgBot.incommingUpdate(update, app, resultChan)
+	result := <-resultChan
+
+	return c.JSON(http.StatusOK, result)
 }
