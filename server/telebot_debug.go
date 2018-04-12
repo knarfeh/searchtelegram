@@ -77,9 +77,9 @@ func CreateTeleBot(conf *config.Config) (*TeleBot, error) {
 	b.Handle("/s_people", telebot.searchChannel)
 
 	// b.Handle("/top", telebot.top)
+	b.Handle("/delete", telebot.delete)
 	b.Handle("/ping", telebot.pong)
 	b.Handle("/stats", telebot.stats)
-	b.Handle("/delete", telebot.delete)
 
 	return telebot, nil
 }
@@ -127,7 +127,8 @@ func (telebot *TeleBot) submit(m *tb.Message) {
 	tgResource.TgID = m.Payload
 	tgResouceString, _ := json.Marshal(tgResource)
 	fmt.Printf("Telegram, %s submit resource: %s\n", m.Sender.Username, tgResouceString)
-	err := telebot.redisClient.Client.Publish("st_submit", string(tgResouceString))
+	err := telebot.redisClient.Client.Publish("st_submit", string(1))
+	telebot.redisClient.Client.LPush("st_submit_list", string(tgResouceString))
 	if err != nil {
 		panic(err)
 	}
@@ -269,5 +270,10 @@ func (telebot *TeleBot) serverStats() string {
 // Private. Delete an item
 func (telebot *TeleBot) delete(m *tb.Message) {
 	fmt.Println(m.Sender)
-	telebot.tb.Send(m.Sender, "delete an item, TODO")
+	telebot.esClient.Client.Delete().Index("telegram").Type("resource").Id(m.Payload).Do(context.TODO())
+	telebot.redisClient.Client.Expire("tgid:"+m.Payload, 1)
+	telebot.redisearchClient.Client.Drop()
+	telebot.redisClient.Client.Expire("redisearch:cached-search-string", 1)
+	result := fmt.Sprintf("%s had been deleted", m.Payload)
+	telebot.tb.Send(m.Sender, result)
 }

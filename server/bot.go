@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/RedisLabs/redisearch-go/redisearch"
 	"github.com/knarfeh/searchtelegram/server/domain"
@@ -57,9 +58,10 @@ func NewBot(token string) (*Bot, error) {
 	bot.Handle("/search_people", bot.searchChannel)
 	bot.Handle("/s_people", bot.searchChannel)
 
-	// bot.Handle("/delete", bot.delete)
+	bot.Handle("/delete", bot.delete)
 	bot.Handle("/ping", bot.pong)
 	bot.Handle("/stats", bot.stats)
+	// bot.Handle(("/update", bot.update)
 	// bot.Handle("/echo", bot.echo)
 	return bot, nil
 }
@@ -254,13 +256,31 @@ func (b *Bot) searchChannel(m *tb.Message) {
 	b.handleResult(m.Chat.ID, result)
 }
 
-// Private. For test purpose
+// ------------------------------- Private ------------------------------------
+func (b *Bot) delete(m *tb.Message) {
+	if m.Sender.Username != "knarfeh" {
+		return
+	}
+	fmt.Printf("delete %s by %s", m.Payload, m.Sender.Username)
+	b.app.ESClient.Client.Delete().Index("telegram").Type("resource").Id(m.Payload).Do(context.TODO())
+	pipe := b.app.RedisClient.Client.Pipeline()
+	pipe.Expire("tgid:"+m.Payload, 1*time.Second)
+	pipe.Expire("redisearch:cached-search-string", 1*time.Second)
+	if _, err := pipe.Exec(); err != nil {
+		fmt.Println(err)
+	}
+	b.app.RedisearchClient.Client.Drop()
+	result := fmt.Sprintf("%s had been deleted", m.Payload)
+	b.handleResult(m.Chat.ID, result)
+}
+
+// For test purpose
 func (b *Bot) pong(m *tb.Message) {
 	if m.Sender.Username != "knarfeh" {
 		return
 	}
 
-	fmt.Println(m.Sender)
+	fmt.Printf("ping! %s", m.Sender.Username)
 	result := "pong " + m.Payload
 	b.handleResult(m.Chat.ID, result)
 	b.app.RedisClient.Client.SAdd("status:ping-unique-user", m.Sender.Username)
