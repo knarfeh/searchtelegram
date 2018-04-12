@@ -20,6 +20,7 @@ type Bot struct {
 	Tgbot    *tgbotapi.BotAPI
 	app      *App
 	handlers map[string]interface{}
+	result   string
 }
 
 // NewBot ...
@@ -59,18 +60,19 @@ func NewBot(token string) (*Bot, error) {
 	// bot.Handle("/delete", bot.delete)
 	bot.Handle("/ping", bot.pong)
 	bot.Handle("/stats", bot.stats)
+	// bot.Handle("/echo", bot.echo)
 	return bot, nil
 }
 
-func (b *Bot) handle(end string, m *tb.Message, c chan string) bool {
+func (b *Bot) handle(end string, m *tb.Message) bool {
 	handler, ok := b.handlers[end]
 	if !ok {
 		return false
 	}
 
-	if handler, ok := handler.(func(*tb.Message, chan string)); ok {
-		go func(b *Bot, handler func(*tb.Message, chan string), m *tb.Message) {
-			handler(m, c)
+	if handler, ok := handler.(func(*tb.Message)); ok {
+		go func(b *Bot, handler func(*tb.Message), m *tb.Message) {
+			handler(m)
 		}(b, handler, m)
 		return true
 	}
@@ -92,7 +94,7 @@ var (
 )
 
 // incommingUpdate ...
-func (b *Bot) incommingUpdate(upd *tb.Update, app *App, c chan string) {
+func (b *Bot) incommingUpdate(upd *tb.Update, app *App) string {
 	messageString, _ := json.Marshal(upd)
 	fmt.Printf("messageString: %s", messageString)
 
@@ -104,7 +106,7 @@ func (b *Bot) incommingUpdate(upd *tb.Update, app *App, c chan string) {
 		if m.Text != "" {
 			// Filtering malicious messages
 			if m.Text[0] == '\a' {
-				return
+				return ""
 			}
 			// Command found, handle and return
 			match := cmdRx.FindAllStringSubmatch(m.Text, -1)
@@ -115,36 +117,32 @@ func (b *Bot) incommingUpdate(upd *tb.Update, app *App, c chan string) {
 
 				// if botName != "" && !strings.EqualFold(b.Me, t string)
 
-				if b.handle(command, m, c) {
-					return
+				if b.handle(command, m) {
+					return b.result
 				}
 			}
 		}
 	}
 
-	return
+	return ""
 }
 
 // Get start info
-func (b *Bot) start(m *tb.Message, c chan string) {
+func (b *Bot) start(m *tb.Message) {
 	fmt.Printf("[start]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
 	result := StartInfo()
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	b.Tgbot.Send(msg)
-	c <- result
+	b.handleResult(m.Chat.ID, result)
 	b.app.RedisClient.Client.SAdd("status:unique-user", m.Sender.Username)
 }
 
 // get detail of an tg_ID
-func (b *Bot) get(m *tb.Message, c chan string) {
+func (b *Bot) get(m *tb.Message) {
 	fmt.Printf("[detail]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
 
 	tgIDExist, _ := b.app.RedisClient.Client.Get("tgid:" + m.Payload).Result()
 	if tgIDExist == "" {
 		result := "Ops, this id does not exist, perhaps you could submit with /submit " + m.Payload
-		msg := tgbotapi.NewMessage(m.Chat.ID, result)
-		b.Tgbot.Send(msg)
-		c <- result
+		b.handleResult(m.Chat.ID, result)
 		return
 	}
 
@@ -154,29 +152,23 @@ func (b *Bot) get(m *tb.Message, c chan string) {
 
 	message, emoji := TgResource2Str(*tgResource)
 	result := "\n" + emoji + "\n \n @" + message
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	b.Tgbot.Send(msg)
-	c <- result
+	b.handleResult(m.Chat.ID, result)
 	b.app.RedisClient.Client.SAdd("status:get-unique-user", m.Sender.Username)
 }
 
 // submit new group, channel, bot
-func (b *Bot) submit(m *tb.Message, c chan string) {
+func (b *Bot) submit(m *tb.Message) {
 	fmt.Printf("[submit]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
 	if m.Payload == "" {
 		result := "Please input telegram ID, like: /submit telegram"
-		msg := tgbotapi.NewMessage(m.Chat.ID, result)
-		b.Tgbot.Send(msg)
-		c <- result
+		b.handleResult(m.Chat.ID, result)
 		b.app.RedisClient.Client.SAdd("status:submit-unique-user", m.Sender.Username)
 		return
 	}
 	tgIDExist, _ := b.app.RedisClient.Client.Get("tgid:" + m.Payload).Result()
 	if tgIDExist != "" {
 		result := "Ha, this id already exist, you could get detailed information with /get " + m.Payload
-		msg := tgbotapi.NewMessage(m.Chat.ID, result)
-		b.Tgbot.Send(msg)
-		c <- result
+		b.handleResult(m.Chat.ID, result)
 		b.app.RedisClient.Client.SAdd("status:submit-unique-user", m.Sender.Username)
 		return
 	}
@@ -190,19 +182,15 @@ func (b *Bot) submit(m *tb.Message, c chan string) {
 		panic(err)
 	}
 	result := "👏Successfully submitted. If everything goes well, you will be able to search for it after a while."
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	b.Tgbot.Send(msg)
-	c <- result
+	b.handleResult(m.Chat.ID, result)
 	b.app.RedisClient.Client.SAdd("status:submit-unique-user", m.Sender.Username)
 }
 
-func (b *Bot) search(m *tb.Message, c chan string) {
+func (b *Bot) search(m *tb.Message) {
 	fmt.Printf("[search]username: %s, payload: %s\n", m.Sender.Username, m.Payload)
 	if m.Payload == "" {
 		result := "Please input search string, like: /search telegram"
-		msg := tgbotapi.NewMessage(m.Chat.ID, result)
-		b.Tgbot.Send(msg)
-		c <- result
+		b.handleResult(m.Chat.ID, result)
 		return
 	}
 	simpleQuery, boolQuery, queryString, tagsSlice := BuildESQuery(m.Payload)
@@ -220,9 +208,7 @@ func (b *Bot) search(m *tb.Message, c chan string) {
 		q := redisearch.NewQuery(rediQueryStr)
 		docs, total, _ := b.app.RedisearchClient.Client.Search(q)
 		result := Redisearch2Str(docs, total)
-		msg := tgbotapi.NewMessage(m.Chat.ID, result)
-		b.Tgbot.Send(msg)
-		c <- result
+		b.handleResult(m.Chat.ID, result)
 
 		if _, err := pipe.Exec(); err != nil {
 			fmt.Println(err)
@@ -238,69 +224,55 @@ func (b *Bot) search(m *tb.Message, c chan string) {
 	}
 
 	result := Hits2Str(*searchResult.Hits)
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	b.Tgbot.Send(msg)
-	c <- result
+	b.handleResult(m.Chat.ID, result)
 	if _, err := pipe.Exec(); err != nil {
 		fmt.Println(err)
 	}
 }
 
-func (b *Bot) help(m *tb.Message, c chan string) {
+func (b *Bot) help(m *tb.Message) {
 	fmt.Println(m.Sender)
 	result := "help, TODO"
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	c <- result
-	b.Tgbot.Send(msg)
+	b.handleResult(m.Chat.ID, result)
 }
 
-func (b *Bot) searchGroup(m *tb.Message, c chan string) {
+func (b *Bot) searchGroup(m *tb.Message) {
 	fmt.Println(m.Sender)
 	result := "search group, TODO"
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	c <- result
-	b.Tgbot.Send(msg)
+	b.handleResult(m.Chat.ID, result)
 }
 
-func (b *Bot) searchBot(m *tb.Message, c chan string) {
+func (b *Bot) searchBot(m *tb.Message) {
 	fmt.Println(m.Sender)
 	result := "search bot, TODO"
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	c <- result
-	b.Tgbot.Send(msg)
+	b.handleResult(m.Chat.ID, result)
 }
 
-func (b *Bot) searchChannel(m *tb.Message, c chan string) {
+func (b *Bot) searchChannel(m *tb.Message) {
 	fmt.Println(m.Sender)
 	result := "search channel, TODO"
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	c <- result
-	b.Tgbot.Send(msg)
+	b.handleResult(m.Chat.ID, result)
 }
 
 // Private. For test purpose
-func (b *Bot) pong(m *tb.Message, c chan string) {
+func (b *Bot) pong(m *tb.Message) {
 	if m.Sender.Username != "knarfeh" {
 		return
 	}
 
 	fmt.Println(m.Sender)
 	result := "pong " + m.Payload
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	b.Tgbot.Send(msg)
-	c <- result
+	b.handleResult(m.Chat.ID, result)
 	b.app.RedisClient.Client.SAdd("status:ping-unique-user", m.Sender.Username)
 }
 
 // Private. Gathering server info
-func (b *Bot) stats(m *tb.Message, c chan string) {
+func (b *Bot) stats(m *tb.Message) {
 	if m.Sender.Username != "knarfeh" {
 		return
 	}
 	result := b.serverStats()
-	msg := tgbotapi.NewMessage(m.Chat.ID, result)
-	b.Tgbot.Send(msg)
-	c <- result
+	b.handleResult(m.Chat.ID, result)
 	b.app.RedisClient.Client.SAdd("status:status-unique-user", m.Sender.Username)
 }
 
@@ -339,4 +311,11 @@ func (b *Bot) serverStats() string {
 	tagsCountStr := fmt.Sprintf("Tags count: %v\n", *tagCountResult.Value)
 
 	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + statusUniqueUserStr + cachedSearchStr + "\n" + esDocCountStr + tagsCountStr
+}
+
+// handleResult ...
+func (b *Bot) handleResult(chatID int64, result string) {
+	msg := tgbotapi.NewMessage(chatID, result)
+	go b.Tgbot.Send(msg)
+	b.result = result
 }
