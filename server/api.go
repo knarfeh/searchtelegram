@@ -14,6 +14,7 @@ import (
 	tb "github.com/tucnak/telebot"
 	elastic "gopkg.in/olivere/elastic.v5"
 	// "gopkg.in/telegram-bot-api.v4"
+	// "github.com/goinggo/mapstructure"
 )
 
 // API is a defined as struct bundle
@@ -190,10 +191,7 @@ func (api *API) TgBotWebhook(c echo.Context) error {
 
 	messageString, _ := json.Marshal(update)
 	app.Engine.Logger.Printf("updateString: %s\n", messageString)
+	app.TgBot.incommingUpdate(update, app)
+	return c.JSON(http.StatusOK, OKResponse)
 
-	// resultChan := make(chan string, 1)
-	result := app.TgBot.incommingUpdate(update, app)
-	// result := <-resultChan
-
-	return c.JSON(http.StatusOK, result)
 }

@@ -1,0 +1,9 @@
+version: '2'
+services:
+  db:
+    image: $POSTGRES_IMAGE
+    ports:
+      - "5432"
+    environment:
+      - POSTGRES_USER=knarfeh
+      - POSTGRES_DB=ste2e

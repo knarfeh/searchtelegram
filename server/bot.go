@@ -21,7 +21,6 @@ type Bot struct {
 	Tgbot    *tgbotapi.BotAPI
 	app      *App
 	handlers map[string]interface{}
-	result   string
 }
 
 // NewBot ...
@@ -96,7 +95,7 @@ var (
 )
 
 // incommingUpdate ...
-func (b *Bot) incommingUpdate(upd *tb.Update, app *App) string {
+func (b *Bot) incommingUpdate(upd *tb.Update, app *App) {
 	messageString, _ := json.Marshal(upd)
 	fmt.Printf("messageString: %s", messageString)
 
@@ -108,7 +107,7 @@ func (b *Bot) incommingUpdate(upd *tb.Update, app *App) string {
 		if m.Text != "" {
 			// Filtering malicious messages
 			if m.Text[0] == '\a' {
-				return ""
+				return
 			}
 			// Command found, handle and return
 			match := cmdRx.FindAllStringSubmatch(m.Text, -1)
@@ -120,13 +119,13 @@ func (b *Bot) incommingUpdate(upd *tb.Update, app *App) string {
 				// if botName != "" && !strings.EqualFold(b.Me, t string)
 
 				if b.handle(command, m) {
-					return b.result
+					return
 				}
 			}
 		}
 	}
 
-	return ""
+	return
 }
 
 // Get start info
@@ -337,5 +336,5 @@ func (b *Bot) serverStats() string {
 func (b *Bot) handleResult(chatID int64, result string) {
 	msg := tgbotapi.NewMessage(chatID, result)
 	go b.Tgbot.Send(msg)
-	b.result = result
+	b.app.RedisClient.Client.Set("e2e:last-message", result, 3600*time.Second)
 }

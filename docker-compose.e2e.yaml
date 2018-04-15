@@ -1,0 +1,21 @@
+version: '2'
+services:
+  e2e:
+    image: $E2E_IMAGE
+    build:
+      context: .
+      dockerfile: ./.docker/.e2e.dev.dockerfile
+    entrypoint: [sh]
+    tty: true
+    volumes:
+      - ./e2e:/src
+      # - /etc/localtime:/etc/localtime:ro
+    environment:
+      - no_proxy=foo
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=knarfeh
+      - DB_NAME=ste2e
+      - ENV=dev
+    env_file:
+      - ./envs/secret.env
