@@ -3,7 +3,11 @@ services:
   db:
     image: $POSTGRES_IMAGE
     ports:
-      - "5432"
+        - 0.0.0.0:5432:5432
     environment:
-      - POSTGRES_USER=knarfeh
-      - POSTGRES_DB=ste2e
+      - DB_USER=knarfeh
+      - DB_NAME=ste2e
+    env_file:
+      - ./envs/secret.env
+    volumes:
+      - ./container-data/postgresql:/var/lib/postgresql

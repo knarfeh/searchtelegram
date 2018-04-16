@@ -5,7 +5,7 @@ import logging
 
 from maic.testrunner import TestRunner
 from maic.assertion import Assertion
-from api_test import configs
+from api_test import config
 
 LOGGER = logging.getLogger()
 

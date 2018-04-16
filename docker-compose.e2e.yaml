@@ -12,7 +12,7 @@ services:
       # - /etc/localtime:/etc/localtime:ro
     environment:
       - no_proxy=foo
-      - DB_HOST=db
+      - DB_HOST=192.168.199.121
       - DB_PORT=5432
       - DB_USER=knarfeh
       - DB_NAME=ste2e
