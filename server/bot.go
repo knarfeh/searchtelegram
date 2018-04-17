@@ -61,7 +61,7 @@ func NewBot(token string) (*Bot, error) {
 	bot.Handle("/ping", bot.pong)
 	bot.Handle("/stats", bot.stats)
 	// bot.Handle(("/update", bot.update)
-	// bot.Handle("/echo", bot.echo)
+	bot.Handle("/echo", bot.echo)
 	return bot, nil
 }
 
@@ -271,6 +271,11 @@ func (b *Bot) delete(m *tb.Message) {
 	b.app.RedisearchClient.Client.Drop()
 	result := fmt.Sprintf("%s had been deleted", m.Payload)
 	b.handleResult(m.Chat.ID, result)
+
+	sc := GetRedisearchSchema()
+	if err := b.app.RedisearchClient.Client.CreateIndex(sc); err != nil {
+		fmt.Print(err)
+	}
 }
 
 // For test purpose
@@ -303,6 +308,7 @@ func (b *Bot) serverStats() string {
 	getUniqueUserPipe := pipe.SCard("status:get-unique-user")
 	submitUniqueUserPipe := pipe.SCard("status:submit-unique-user")
 	pingUniqueUserPipe := pipe.SCard("status:ping-unique-user")
+	echoUniqueUserPipe := pipe.SCard("status:echo-unique-user")
 	statusUniqueUserPipe := pipe.SCard("status:status-unique-user")
 	cachedStringsPipe := pipe.SMembers("redisearch:cached-search-string")
 	if _, err := pipe.Exec(); err != nil {
@@ -314,6 +320,7 @@ func (b *Bot) serverStats() string {
 	getUniqueUserStr := fmt.Sprintf("Unique user who input /get: %d\n", getUniqueUserPipe.Val())
 	submitUniqueUserStr := fmt.Sprintf("Unique user who input /submit: %d\n", submitUniqueUserPipe.Val())
 	pingUniqueUserStr := fmt.Sprintf("Unique user who input /ping: %d\n", pingUniqueUserPipe.Val())
+	echoUniqueUserStr := fmt.Sprintf("Unique user who input /echo: %d\n", echoUniqueUserPipe.Val())
 	statusUniqueUserStr := fmt.Sprintf("Unique user who input /status: %d\n", statusUniqueUserPipe.Val())
 	cachedSearchStr := fmt.Sprintf("Cached search string:\n %s\n", strings.Join(cachedStringsPipe.Val(), ", "))
 
@@ -329,7 +336,16 @@ func (b *Bot) serverStats() string {
 	tagCountResult, _ := searchResult.Aggregations.Cardinality("tagsCardinality")
 	tagsCountStr := fmt.Sprintf("Tags count: %v\n", *tagCountResult.Value)
 
-	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + statusUniqueUserStr + cachedSearchStr + "\n" + esDocCountStr + tagsCountStr
+	return uniqueUserStr + searchUniqueUserStr + getUniqueUserStr + submitUniqueUserStr + pingUniqueUserStr + echoUniqueUserStr + statusUniqueUserStr + cachedSearchStr + "\n" + esDocCountStr + tagsCountStr
+}
+
+// echo ...
+func (b *Bot) echo(m *tb.Message) {
+	if m.Sender.Username != "knarfeh" {
+		return
+	}
+	b.handleResult(m.Chat.ID, m.Payload)
+	b.app.RedisClient.Client.SAdd("status:echo-unique-user", m.Sender.Username)
 }
 
 // handleResult ...

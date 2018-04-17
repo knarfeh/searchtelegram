@@ -144,7 +144,10 @@ func (hauler *Hauler) handleSubmit(submitStr string) {
 	if err := hauler.redisearchClient.Client.IndexOptions(redisearch.DefaultIndexingOptions, doc); err != nil {
 		fmt.Println(err)
 	}
-	hauler.send2stChannel(*tgResource)
+	// for e2e tests
+	if tgResource.TgID != "knarfeh" {
+		hauler.send2stChannel(*tgResource)
+	}
 
 	if err != nil {
 		// Please make sure domain not exist

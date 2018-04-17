@@ -13,11 +13,7 @@ type RedisearchClient struct {
 	Client *redisearch.Client
 }
 
-// NewRedisearchClient ...
-func NewRedisearchClient(host string, port string) *RedisearchClient {
-	client := redisearch.NewClient(host+":"+port, "st_index")
-	// client.Drop()
-
+func GetRedisearchSchema() *redisearch.Schema {
 	sc := redisearch.NewSchema(redisearch.DefaultOptions).
 		AddField(redisearch.NewTextField("desc")).
 		AddField(redisearch.NewTextField("type")).
@@ -25,6 +21,15 @@ func NewRedisearchClient(host string, port string) *RedisearchClient {
 		AddField(redisearch.NewTextField("tgid")).
 		AddField(redisearch.NewTextField("tagsforsearch")).
 		AddField(redisearch.NewTagFieldOptions("tags", redisearch.TagFieldOptions{Separator: '#'}))
+	return sc
+}
+
+// NewRedisearchClient ...
+func NewRedisearchClient(host string, port string) *RedisearchClient {
+	client := redisearch.NewClient(host+":"+port, "st_index")
+	// client.Drop()
+
+	sc := GetRedisearchSchema()
 
 	// Create the index with the given schema
 	if err := client.CreateIndex(sc); err != nil {
