@@ -350,6 +350,7 @@ func (b *Bot) echo(m *tb.Message) {
 
 // handleResult ...
 func (b *Bot) handleResult(chatID int64, result string) {
+	// TODO: support html format
 	msg := tgbotapi.NewMessage(chatID, result)
 	go b.Tgbot.Send(msg)
 	b.app.RedisClient.Client.Set("e2e:last-message", result, 3600*time.Second)

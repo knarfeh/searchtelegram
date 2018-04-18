@@ -30,6 +30,11 @@ def get_json_from_str(string, default={"testint": "1.1.1.1"}):
     except:
         return default
 
+def get_header():
+    headers = {
+        "content-type": "application/json"
+    }
+    return headers
 
 RECIPIENTS = get_list_from_str(os.getenv('RECIPIENTS', 'knarfeh@outlook.com'))
 EMAIL = {
@@ -39,6 +44,10 @@ EMAIL = {
 
 RETRY_TIMES = 1
 ENV = os.environ.get('ENV') or "STAGING"
+
+API_URL = os.getenv("STAPIURL", "http://192.168.199.121:5000")
+REDIS_HOST = os.getenv("REDISHOST", "localhost")
+REDIS_PORT = os.getenv("REDISPORT", 16379)
 
 # test cases list
 TESTCASES = get_list_from_str(os.getenv("TESTCASES"))

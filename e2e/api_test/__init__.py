@@ -8,18 +8,16 @@ import logging
 from maic.testrunner import TestRunner
 
 from api_test.api_tgbot import TgBotTest
-from api_test import config
+from api_test import configs
 
 
 class ApiTest(TestRunner, TgBotTest):
     data = {}
 
     def set_up(self):
-        print("WTF")
         self.data = {}
         self.tgbot_set_up()
 
     def tear_down(self):
-        print("WTF???")
         self.data = {}
         self.tgbot_tear_down()

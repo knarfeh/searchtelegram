@@ -9,7 +9,7 @@ from time import time
 import requests
 
 from maic.decorators import case
-from api_test import config
+from api_test import configs
 from api_test.base import TestBase
 
 __author__ = "knarfeh@outlook.com"

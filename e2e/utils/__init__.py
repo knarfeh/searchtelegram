@@ -13,7 +13,7 @@ from maic.database.store import TestStore, TestCase
 from sqlalchemy import create_engine, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-from api_test import config
+from api_test import configs
 
 
 def get_case_num_db(case_name, status):

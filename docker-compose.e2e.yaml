@@ -5,10 +5,11 @@ services:
     build:
       context: .
       dockerfile: ./.docker/.e2e.dev.dockerfile
-    entrypoint: [sh]
+    # entrypoint: [sh]
+    command: ["python", "main.py"]
     tty: true
-    volumes:
-      - ./e2e:/src
+    # volumes:
+      # - ./e2e:/src
       # - /etc/localtime:/etc/localtime:ro
     environment:
       - no_proxy=foo
@@ -16,6 +17,9 @@ services:
       - DB_PORT=5432
       - DB_USER=knarfeh
       - DB_NAME=ste2e
+      - REDISHOST=192.168.199.121
+      - REDISPORT=16379
+      - STAPISERVER=http://192.168.199.121:5000
       - ENV=dev
     env_file:
       - ./envs/secret.env
