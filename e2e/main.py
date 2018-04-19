@@ -133,4 +133,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import zc.lockfile
+    try:
+        lock = zc.lockfile.LockFile('/tmp/lock')
+        main()
+        lock.close()
+    except zc.lockfile.LockError:
+        print("Can't lock file")

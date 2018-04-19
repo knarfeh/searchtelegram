@@ -3,3 +3,4 @@ psycopg2
 redis
 futures==3.1.1
 maic==0.0.1.dev3
+zc.lockfile
