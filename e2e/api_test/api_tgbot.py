@@ -11,6 +11,7 @@ import requests
 from maic.decorators import case
 from api_test import configs
 from api_test.base import TestBase
+from utils import get_tgbot_payload
 
 __author__ = "knarfeh@outlook.com"
 LOGGER = logging.getLogger()
@@ -37,45 +38,21 @@ class TgBotTest(TestBase):
 
     def tgbot_set_up(self):
         LOGGER.debug("Set up tgbot test ...")
-        payload = self._get_tgbot_payload("/echo Start testing tgbot ...")
+        payload = get_tgbot_payload("/echo Start testing tgbot ...")
         get_tgbot_response(payload, configs.get_header())
         sleep(5)
 
     def tgbot_tear_down(self):
         LOGGER.debug("tgbot tear down")
-        payload = self._get_tgbot_payload("/echo End testing tgbot")
+        payload = get_tgbot_payload("/echo End testing tgbot")
         get_tgbot_response(payload, configs.get_header())
 
     def _get_last_message(self):
         pass
 
-    def _get_tgbot_payload(self, text):
-        payload = {
-            "message": {
-                "message_id": 204,
-                "from": {
-                "id": 312172714,
-                "first_name": "knarfeh",
-                "last_name": "",
-                "username": "knarfeh"
-                },
-                "date": 1522474188,
-                "chat": {
-                "id": 312172714,
-                "type": "private",
-                "title": "",
-                "first_name": "knarfeh",
-                "last_name": "",
-                "username": "knarfeh"
-                },
-                "text": text
-            }
-        }
-        return payload
-
     @case
     def tgbot_test__othercommand(self):
-        payload = self._get_tgbot_payload("/delete knarfeh")
+        payload = get_tgbot_payload("/delete knarfeh")
         get_tgbot_response(payload, configs.get_header())
 
         print("Sleep 5 seconds \n")
@@ -125,7 +102,7 @@ class TgBotTest(TestBase):
 
     def test_ping(self):
         LOGGER.debug("test ping command")
-        payload = self._get_tgbot_payload("/ping")
+        payload = get_tgbot_payload("/ping")
         tgbot_result = get_tgbot_response(payload, configs.get_header())
         if tgbot_result["status"] != 200:
             result = {
@@ -153,7 +130,7 @@ class TgBotTest(TestBase):
     def test_echo(self):
         LOGGER.debug("Test echo command")
         echo_message = "Use echo command to test echo"
-        payload = self._get_tgbot_payload("/echo {}".format(echo_message))
+        payload = get_tgbot_payload("/echo {}".format(echo_message))
         tgbot_result = get_tgbot_response(payload, configs.get_header())
         if tgbot_result["status"] != 200:
             result = {
@@ -180,7 +157,7 @@ class TgBotTest(TestBase):
 
     def test_start(self):
         LOGGER.debug("Test start command")
-        payload = self._get_tgbot_payload("/start")
+        payload = get_tgbot_payload("/start")
         tgbot_result = get_tgbot_response(payload, configs.get_header())
         if tgbot_result["status"] != 200:
             result = {
@@ -208,7 +185,7 @@ class TgBotTest(TestBase):
 
     def test_get(self):
         LOGGER.debug("Test get command")
-        payload = self._get_tgbot_payload("/get knarfeh")
+        payload = get_tgbot_payload("/get knarfeh")
         tgbot_result = get_tgbot_response(payload, configs.get_header())
         if tgbot_result["status"] != 200:
             result = {
@@ -237,7 +214,7 @@ class TgBotTest(TestBase):
 
     def test_stats(self):
         LOGGER.debug("Test stats command")
-        payload = self._get_tgbot_payload("/stats")
+        payload = get_tgbot_payload("/stats")
         tgbot_result = get_tgbot_response(payload, configs.get_header())
         if tgbot_result["status"] != 200:
             result = {
@@ -266,7 +243,7 @@ class TgBotTest(TestBase):
 
     def test_delete(self):
         LOGGER.debug("Test delete command")
-        payload = self._get_tgbot_payload("/delete knarfeh")
+        payload = get_tgbot_payload("/delete knarfeh")
         tgbot_result = get_tgbot_response(payload, configs.get_header())
         if tgbot_result["status"] != 200:
             result = {
@@ -285,7 +262,7 @@ class TgBotTest(TestBase):
 
         print("Wait for redis delete pipeline, sleep 5 seconds")
         sleep(5)
-        payload = self._get_tgbot_payload("/get knarfeh")
+        payload = get_tgbot_payload("/get knarfeh")
         tgbot_result = get_tgbot_response(payload, configs.get_header())
         if tgbot_result["status"] != 200:
             result = {
@@ -314,7 +291,7 @@ class TgBotTest(TestBase):
 
     def test_submit(self, exist=True):
         LOGGER.debug("Test submit")
-        payload = self._get_tgbot_payload("/submit knarfeh")
+        payload = get_tgbot_payload("/submit knarfeh")
         tgbot_result = get_tgbot_response(payload, configs.get_header())
         if exist is True:
             should_message = "this id already exist"
@@ -347,7 +324,7 @@ class TgBotTest(TestBase):
 
     def test_search(self):
         LOGGER.debug("Test search")
-        payload = self._get_tgbot_payload("/search telegram")
+        payload = get_tgbot_payload("/search telegram")
         tgbot_result = get_tgbot_response(payload, configs.get_header())
 
         if tgbot_result["status"] != 200:

@@ -65,3 +65,27 @@ def send_email(subject, body, recipients):
         }
     )
     return
+
+def get_tgbot_payload(text):
+    payload = {
+        "message": {
+            "message_id": 204,
+            "from": {
+            "id": 312172714,
+            "first_name": "knarfeh",
+            "last_name": "",
+            "username": "knarfeh"
+            },
+            "date": 1522474188,
+            "chat": {
+            "id": 312172714,
+            "type": "private",
+            "title": "",
+            "first_name": "knarfeh",
+            "last_name": "",
+            "username": "knarfeh"
+            },
+            "text": text
+        }
+    }
+    return payload

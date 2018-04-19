@@ -62,6 +62,7 @@ func NewBot(token string) (*Bot, error) {
 	bot.Handle("/stats", bot.stats)
 	// bot.Handle(("/update", bot.update)
 	bot.Handle("/echo", bot.echo)
+	// bot.Handle("/e2e", bot.echo)
 	return bot, nil
 }
 

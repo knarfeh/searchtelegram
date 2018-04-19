@@ -13,3 +13,4 @@ notes/
 conf/gobackup.yaml
 .k8s/int_secret.yaml
 .k8s/prod_secret.yaml
+.k8s/e2e_secret.yaml
