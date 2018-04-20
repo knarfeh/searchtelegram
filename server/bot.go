@@ -44,6 +44,7 @@ func NewBot(token string) (*Bot, error) {
 	// bot.Handle("/tags", bot.tags)
 	bot.Handle("/help", bot.help)
 	// b.Handle("/tips", telebot.tips)
+	// b.Handle("/star", telebot.star)
 
 	bot.Handle("/search_group", bot.searchGroup)
 	bot.Handle("/s_group", bot.searchGroup)

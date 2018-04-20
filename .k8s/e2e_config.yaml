@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
       - name: searchtelegrame2e
-        image: daocloud.io/knarfeh/searchtelegrame2e:feat-knarfeh-dev-557f4cb
+        image: daocloud.io/knarfeh/searchtelegrame2e:feat-knarfeh-dev-64a5592
         imagePullPolicy: Always
         env:
           - name: DB_HOST
