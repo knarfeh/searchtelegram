@@ -15,6 +15,7 @@ services:
       ESHOSTPORT: 'http://elasticsearch:9200'
       REDISHOST: 'redis'
       REDISPORT: '6379'
+      API_URL: 'https://int.searchtelegram.com'
     networks:
       - searchtelegram
   elasticsearch:

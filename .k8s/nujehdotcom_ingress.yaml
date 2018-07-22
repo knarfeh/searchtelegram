@@ -4,7 +4,7 @@ metadata:
   name: nujeh.com
   namespace: default
   annotations:
-    nginx.ingress.kubernetes.io/permanent-redirect: http://knarfeh.com
+    nginx.ingress.kubernetes.io/permanent-redirect: https://knarfeh.com
 spec:
   rules:
   - host: nujeh.com
