@@ -41,6 +41,7 @@ func NewBot(token string) (*Bot, error) {
 	bot.Handle("/submit", bot.submit)
 	bot.Handle("/search", bot.search)
 	bot.Handle("/s", bot.search)
+	bot.Handle(tb.OnText, bot.all_text)
 	// bot.Handle("/tags", bot.tags)
 	bot.Handle("/help", bot.help)
 	// b.Handle("/tips", telebot.tips)
@@ -124,6 +125,9 @@ func (b *Bot) incommingUpdate(upd *tb.Update, app *App) {
 					return
 				}
 			}
+
+			b.handle(tb.OnText, m)
+			return
 		}
 	}
 
@@ -189,6 +193,11 @@ func (b *Bot) submit(m *tb.Message) {
 	b.app.RedisClient.Client.SAdd("status:submit-unique-user", m.Sender.Username)
 }
 
+func (b *Bot) all_text(m *tb.Message) {
+	m.Payload = m.Text
+	b.search(m)
+}
+
 func (b *Bot) search(m *tb.Message) {
 	fmt.Printf("[search]username: %s, payload: %s\n", m.Sender.Username, m.Payload)
 	if m.Payload == "" {
@@ -220,7 +229,7 @@ func (b *Bot) search(m *tb.Message) {
 	}
 
 	fmt.Printf("No cache in redis, search in elasticsearch, search str: %s\n", m.Payload)
-	search := b.app.ESClient.Client.Search().Index("telegram").Type("resource").Size(20).PostFilter(boolQuery)
+	search := b.app.ESClient.Client.Search().Index("telegram").Type("resource").Size(10).PostFilter(boolQuery)
 	searchResult, err := search.Query(simpleQuery).Do(context.TODO())
 	if err != nil {
 		panic(err)
