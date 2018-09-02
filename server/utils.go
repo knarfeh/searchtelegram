@@ -136,16 +136,24 @@ I will help you search telegram group, channel, bot, people. You can also submit
 /start Get help information
 
 /search [searchstring] [tagstring] Search group, channel, bot, people
-
-  i.e /search telegram #group#people#tag3
+  e.g. /search telegram #group#people#tag3
 
 /get [telegramID] Get details with telegram ID
-
-  i.e /get searchtelegramdotcombot
+  e.g. /get searchtelegramdotcombot
 
 /submit [telegramID] Submit new item
+  e.g. /submit searchtelegramchannel
 
-  i.e /submit searchtelegramchannel
+/s_channel [channelID] Search channel
+  e.g. /s_channel telegram
+
+/s_group [groupID] Search group
+  e.g. /s_group python
+
+/s_bot [channelID] Search bot
+  e.g. /s_bot picture
+
+Our website: https://searchtelegram.com
 `
 	return result
 }

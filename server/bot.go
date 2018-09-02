@@ -167,7 +167,7 @@ func (b *Bot) get(m *tb.Message) {
 func (b *Bot) submit(m *tb.Message) {
 	fmt.Printf("[submit]sender: %s, user id: %d, payload: %s\n", m.Sender.Username, m.Sender.ID, m.Payload)
 	if m.Payload == "" {
-		result := "Please input telegram ID, like: /submit telegram"
+		result := "Please input telegram ID(e.g., /submit telegram)"
 		b.handleResult(m.Chat.ID, result)
 		b.app.RedisClient.Client.SAdd("status:submit-unique-user", m.Sender.Username)
 		return
@@ -201,7 +201,7 @@ func (b *Bot) all_text(m *tb.Message) {
 func (b *Bot) search(m *tb.Message) {
 	fmt.Printf("[search]username: %s, payload: %s\n", m.Sender.Username, m.Payload)
 	if m.Payload == "" {
-		result := "Please input search string, like: /search telegram"
+		result := "Please input search string(e.g., /search telegram)"
 		b.handleResult(m.Chat.ID, result)
 		return
 	}
@@ -243,27 +243,22 @@ func (b *Bot) search(m *tb.Message) {
 }
 
 func (b *Bot) help(m *tb.Message) {
-	fmt.Println(m.Sender)
-	result := "help, TODO"
-	b.handleResult(m.Chat.ID, result)
+	b.start(m)
 }
 
 func (b *Bot) searchGroup(m *tb.Message) {
-	fmt.Println(m.Sender)
-	result := "search group, TODO"
-	b.handleResult(m.Chat.ID, result)
+	m.Payload = m.Text + "#group"
+	b.search(m)
 }
 
 func (b *Bot) searchBot(m *tb.Message) {
-	fmt.Println(m.Sender)
-	result := "search bot, TODO"
-	b.handleResult(m.Chat.ID, result)
+	m.Payload = m.Text + "#bot"
+	b.search(m)
 }
 
 func (b *Bot) searchChannel(m *tb.Message) {
-	fmt.Println(m.Sender)
-	result := "search channel, TODO"
-	b.handleResult(m.Chat.ID, result)
+	m.Payload = m.Text + "#channel"
+	b.search(m)
 }
 
 // ------------------------------- Private ------------------------------------
@@ -363,6 +358,7 @@ func (b *Bot) echo(m *tb.Message) {
 func (b *Bot) handleResult(chatID int64, result string) {
 	// TODO: support html format
 	msg := tgbotapi.NewMessage(chatID, result)
+	msg.DisableWebPagePreview = true
 	go b.Tgbot.Send(msg)
 	b.app.RedisClient.Client.Set("e2e:last-message", result, 3600*time.Second)
 }

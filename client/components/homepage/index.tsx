@@ -323,7 +323,8 @@ export default class Homepage extends React.Component
               <div> © 2018 SearchTelegram |
                 <a href="mailto:knarfeh@outlook.com"> Email </a> |
                 <a href="https://github.com/knarfeh/searchtelegram" target="_blank"> Source </a> |
-                <a href="https://t.me/SearchTelegramPublic" target="_blank"> Telegram Group </a>
+                <a href="https://t.me/SearchTelegramPublic" target="_blank"> Telegram Group </a> |
+                <a href="https://t.me/SearchTelegramdotcomBot" target="_blank"> Telegram Bot </a>
               </div>
               <br/>
             </div>
